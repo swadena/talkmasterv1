@@ -30,16 +30,14 @@ export function useTextToSpeech() {
         // Pick the most natural-sounding English voice available
         const voices = window.speechSynthesis.getVoices();
         
-        // Priority order: premium neural voices first, then quality defaults
+        // Priority order: male voices to match avatar
         const voicePreferences = [
           "Google UK English Male",
-          "Google UK English Female", 
           "Daniel",
-          "Samantha",
-          "Karen",
-          "Google US English",
           "Microsoft David",
-          "Microsoft Zira",
+          "Google US English",
+          "Alex",
+          "Fred",
         ];
         
         let preferred = null;
