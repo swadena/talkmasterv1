@@ -1,1 +1,4 @@
 project_id = "jkiqkiiwbmkswitezhge"
+
+[functions.generate-challenge]
+verify_jwt = false
