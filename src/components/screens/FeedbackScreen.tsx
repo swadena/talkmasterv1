@@ -57,8 +57,8 @@ const FeedbackScreen = ({ mode, initialTranscript, onFinish, onBack }: FeedbackS
   const generateChallenge = useCallback(
     async (transcript: string) => {
       try {
-        const { data, error } = await supabase.functions.invoke("generate-challenge", {
-          body: { transcript, mode, previousChallenges },
+      const { data, error } = await supabase.functions.invoke("generate-challenge", {
+          body: { transcript, mode, previousChallenges, roundNumber: round },
         });
 
         if (error) throw error;
