@@ -1,5 +1,12 @@
 import { useRef, useState, useCallback } from "react";
 
+// Extend Window for webkit prefix
+declare global {
+  interface Window {
+    webkitSpeechRecognition: typeof SpeechRecognition;
+  }
+}
+
 /**
  * Lightweight hook wrapping the Web Speech API (SpeechRecognition).
  * Falls back gracefully if the browser doesn't support it.
