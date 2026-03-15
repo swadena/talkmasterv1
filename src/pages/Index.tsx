@@ -8,20 +8,35 @@ import SummaryScreen from "@/components/screens/SummaryScreen";
 export type AppScreen = "home" | "recording" | "feedback" | "summary";
 export type PracticeMode = "debate" | "interview" | "pitch" | "presentation";
 
+export interface ConversationEntry {
+  role: "user" | "challenge";
+  text: string;
+  round: number;
+}
+
 const Index = () => {
   const [screen, setScreen] = useState<AppScreen>("home");
   const [mode, setMode] = useState<PracticeMode>("interview");
   const [transcript, setTranscript] = useState("");
+  const [conversationLog, setConversationLog] = useState<ConversationEntry[]>([]);
 
   const handleStart = (selectedMode: PracticeMode) => {
     setMode(selectedMode);
     setTranscript("");
+    setConversationLog([]);
     setScreen("recording");
   };
 
   const handleRecordingStop = (recordedTranscript: string) => {
     setTranscript(recordedTranscript);
+    // Add initial response to conversation log
+    setConversationLog([{ role: "user", text: recordedTranscript, round: 0 }]);
     setScreen("feedback");
+  };
+
+  const handleFeedbackFinish = (log: ConversationEntry[]) => {
+    setConversationLog(log);
+    setScreen("summary");
   };
 
   return (
@@ -58,13 +73,16 @@ const Index = () => {
               key="feedback"
               mode={mode}
               initialTranscript={transcript}
-              onFinish={() => setScreen("summary")}
+              initialConversationLog={conversationLog}
+              onFinish={handleFeedbackFinish}
               onBack={() => setScreen("recording")}
             />
           )}
           {screen === "summary" && (
             <SummaryScreen
               key="summary"
+              mode={mode}
+              conversationLog={conversationLog}
               onNewSession={() => setScreen("home")}
               onBack={() => setScreen("feedback")}
             />
