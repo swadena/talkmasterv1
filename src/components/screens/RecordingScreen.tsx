@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ChevronLeft } from "lucide-react";
 import VideoAvatar from "@/components/VideoAvatar";
+import { useSpeechToText } from "@/hooks/useSpeechToText";
 import type { PracticeMode } from "@/pages/Index";
 
 const MAX_DURATION = 120;
@@ -9,7 +10,7 @@ const WARNING_THRESHOLD = 10;
 
 interface RecordingScreenProps {
   mode: PracticeMode;
-  onStop: () => void;
+  onStop: (transcript: string) => void;
   onBack: () => void;
 }
 
@@ -18,26 +19,38 @@ const RecordingScreen = ({ mode, onStop, onBack }: RecordingScreenProps) => {
   const [countdown, setCountdown] = useState(3);
   const [elapsed, setElapsed] = useState(0);
   const [showWarning, setShowWarning] = useState(false);
+  const stt = useSpeechToText();
 
   const remaining = MAX_DURATION - elapsed;
 
+  // Countdown
   useEffect(() => {
     if (phase !== "countdown") return;
-    if (countdown <= 0) { setPhase("recording"); return; }
+    if (countdown <= 0) {
+      setPhase("recording");
+      stt.start();
+      return;
+    }
     const t = setTimeout(() => setCountdown(c => c - 1), 1000);
     return () => clearTimeout(t);
-  }, [countdown, phase]);
+  }, [countdown, phase]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Elapsed timer
   useEffect(() => {
     if (phase !== "recording") return;
     const t = setInterval(() => setElapsed(e => e + 1), 1000);
     return () => clearInterval(t);
   }, [phase]);
 
+  // Auto-stop at max
   useEffect(() => {
-    if (phase === "recording" && elapsed >= MAX_DURATION) onStop();
-  }, [elapsed, phase, onStop]);
+    if (phase === "recording" && elapsed >= MAX_DURATION) {
+      stt.stop();
+      onStop(stt.transcript);
+    }
+  }, [elapsed, phase]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // 10-second warning
   useEffect(() => {
     if (phase === "recording" && remaining <= WARNING_THRESHOLD && remaining > 0 && !showWarning) {
       setShowWarning(true);
@@ -49,6 +62,11 @@ const RecordingScreen = ({ mode, onStop, onBack }: RecordingScreenProps) => {
     const t = setTimeout(() => setShowWarning(false), 3000);
     return () => clearTimeout(t);
   }, [showWarning]);
+
+  const handleStop = useCallback(() => {
+    stt.stop();
+    onStop(stt.transcript);
+  }, [stt, onStop]);
 
   const formatTime = useCallback((s: number) => {
     const m = Math.floor(s / 60);
@@ -133,7 +151,7 @@ const RecordingScreen = ({ mode, onStop, onBack }: RecordingScreenProps) => {
           </motion.p>
         )}
         <button
-          onClick={phase === "recording" ? onStop : undefined}
+          onClick={phase === "recording" ? handleStop : undefined}
           disabled={phase !== "recording"}
           className={`flex h-16 w-16 items-center justify-center rounded-full ease-presence transition-all duration-250 will-change-transform active:scale-90 ${
             phase === "recording" ? "bg-record animate-pulse-record" : "bg-muted"

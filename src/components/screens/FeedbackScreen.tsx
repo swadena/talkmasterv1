@@ -1,78 +1,132 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ChevronLeft, CheckCircle } from "lucide-react";
 import VideoAvatar from "@/components/VideoAvatar";
+import { useSpeechToText } from "@/hooks/useSpeechToText";
+import { supabase } from "@/integrations/supabase/client";
 import type { PracticeMode } from "@/pages/Index";
-
-const challengePrompts = [
-  "Why does that matter?",
-  "What evidence supports this claim?",
-  "Is that the strongest version of your point?",
-  "Can you give a specific example?",
-  "What would a skeptic say?",
-  "How does this connect to the bigger picture?",
-  "What's the counter-argument?",
-  "Could you be more precise about that?",
-];
 
 const RESPONSE_MAX = 60;
 const RESPONSE_WARNING = 10;
 
+const fallbackPrompts: Record<string, string[]> = {
+  debate: [
+    "What is your strongest argument for your position?",
+    "What would a skeptic say?",
+    "What evidence supports this claim?",
+  ],
+  interview: [
+    "How would you answer this question convincingly in a real interview?",
+    "Can you give a specific example?",
+    "What makes you the best candidate?",
+  ],
+  pitch: [
+    "Why should someone invest in this idea?",
+    "What differentiates this from competitors?",
+    "How big is the market opportunity?",
+  ],
+  presentation: [
+    "What is the main takeaway you want your audience to remember?",
+    "How does this connect to the bigger picture?",
+    "Could you be more precise about that?",
+  ],
+};
+
 interface FeedbackScreenProps {
   mode: PracticeMode;
+  initialTranscript: string;
   onFinish: () => void;
   onBack: () => void;
 }
 
-// thinking → speaking (AI delivers challenge) → responding (user talks) → loop
 type Phase = "thinking" | "speaking" | "responding";
 
-const FeedbackScreen = ({ onFinish, onBack }: FeedbackScreenProps) => {
+const FeedbackScreen = ({ mode, initialTranscript, onFinish, onBack }: FeedbackScreenProps) => {
   const [phase, setPhase] = useState<Phase>("thinking");
   const [round, setRound] = useState(0);
-  const [usedPrompts, setUsedPrompts] = useState<number[]>([]);
   const [currentPrompt, setCurrentPrompt] = useState("");
   const [responseTimer, setResponseTimer] = useState(0);
+  const [previousChallenges, setPreviousChallenges] = useState<string[]>([]);
+  const latestTranscriptRef = useRef(initialTranscript);
+  const stt = useSpeechToText();
 
   const remaining = RESPONSE_MAX - responseTimer;
 
-  const pickPrompt = useCallback(() => {
-    const available = challengePrompts.map((_, i) => i).filter(i => !usedPrompts.includes(i));
-    const pool = available.length > 0 ? available : challengePrompts.map((_, i) => i);
-    const idx = pool[Math.floor(Math.random() * pool.length)];
-    setUsedPrompts(prev => [...prev, idx]);
-    setCurrentPrompt(challengePrompts[idx]);
-  }, [usedPrompts]);
+  const generateChallenge = useCallback(
+    async (transcript: string) => {
+      try {
+        const { data, error } = await supabase.functions.invoke("generate-challenge", {
+          body: { transcript, mode, previousChallenges },
+        });
 
-  // Each round: thinking → speaking → responding (auto-ready mic)
+        if (error) throw error;
+        return data?.challenge as string | undefined;
+      } catch (e) {
+        console.error("Challenge generation failed:", e);
+        return undefined;
+      }
+    },
+    [mode, previousChallenges]
+  );
+
+  const getFallback = useCallback(() => {
+    const pool = fallbackPrompts[mode] || fallbackPrompts.debate;
+    const unused = pool.filter((p) => !previousChallenges.includes(p));
+    const list = unused.length > 0 ? unused : pool;
+    return list[Math.floor(Math.random() * list.length)];
+  }, [mode, previousChallenges]);
+
+  // Each round: thinking → speaking → responding
   useEffect(() => {
+    let cancelled = false;
     setPhase("thinking");
     setResponseTimer(0);
-    pickPrompt();
 
-    const t1 = setTimeout(() => setPhase("speaking"), 1500);
-    // After "speaking" for 3s, auto-transition to responding (mic ready)
-    const t2 = setTimeout(() => setPhase("responding"), 4500);
-    return () => { clearTimeout(t1); clearTimeout(t2); };
+    const run = async () => {
+      const transcript = latestTranscriptRef.current;
+      const challenge = await generateChallenge(transcript);
+      if (cancelled) return;
+
+      const prompt = challenge || getFallback();
+      setCurrentPrompt(prompt);
+      setPreviousChallenges((prev) => [...prev, prompt]);
+      setPhase("speaking");
+
+      // After 3s of "speaking", auto-transition to responding
+      setTimeout(() => {
+        if (!cancelled) {
+          setPhase("responding");
+          stt.start();
+        }
+      }, 3000);
+    };
+
+    run();
+    return () => {
+      cancelled = true;
+    };
   }, [round]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Response timer
   useEffect(() => {
     if (phase !== "responding") return;
-    const t = setInterval(() => setResponseTimer(e => e + 1), 1000);
+    const t = setInterval(() => setResponseTimer((e) => e + 1), 1000);
     return () => clearInterval(t);
   }, [phase]);
 
-  // Auto-stop at max → next round automatically
+  // Auto-stop at max → next round
   useEffect(() => {
     if (phase === "responding" && responseTimer >= RESPONSE_MAX) {
-      setRound(r => r + 1);
+      const text = stt.stop();
+      latestTranscriptRef.current = text || stt.transcript;
+      setRound((r) => r + 1);
     }
-  }, [responseTimer, phase]);
+  }, [responseTimer, phase]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleStopResponse = () => {
-    // User stops talking → next round (AI challenges again)
-    setRound(r => r + 1);
+    const text = stt.stop();
+    latestTranscriptRef.current = text || stt.transcript;
+    setRound((r) => r + 1);
   };
 
   const formatTime = (s: number) => {
@@ -81,7 +135,8 @@ const FeedbackScreen = ({ onFinish, onBack }: FeedbackScreenProps) => {
     return `${m}:${sec.toString().padStart(2, "0")}`;
   };
 
-  const avatarState = phase === "thinking" ? "thinking" : phase === "speaking" ? "speaking" : "listening";
+  const avatarState =
+    phase === "thinking" ? "thinking" : phase === "speaking" ? "speaking" : "listening";
 
   return (
     <motion.div
@@ -111,12 +166,16 @@ const FeedbackScreen = ({ onFinish, onBack }: FeedbackScreenProps) => {
         </div>
 
         {phase === "responding" ? (
-          <div className={`rounded-full px-3 py-1 backdrop-blur-md transition-colors duration-300 ${
-            remaining <= RESPONSE_WARNING ? "bg-record/30" : "bg-background/20"
-          }`}>
-            <span className={`tabular-nums text-sm font-medium transition-colors duration-300 ${
-              remaining <= RESPONSE_WARNING ? "text-record" : "text-foreground"
-            }`}>
+          <div
+            className={`rounded-full px-3 py-1 backdrop-blur-md transition-colors duration-300 ${
+              remaining <= RESPONSE_WARNING ? "bg-record/30" : "bg-background/20"
+            }`}
+          >
+            <span
+              className={`tabular-nums text-sm font-medium transition-colors duration-300 ${
+                remaining <= RESPONSE_WARNING ? "text-record" : "text-foreground"
+              }`}
+            >
               {formatTime(responseTimer)}
             </span>
           </div>
@@ -166,7 +225,7 @@ const FeedbackScreen = ({ onFinish, onBack }: FeedbackScreenProps) => {
         </AnimatePresence>
       </div>
 
-      {/* Bottom controls — natural conversation flow */}
+      {/* Bottom controls */}
       <div className="relative z-10 flex flex-col items-center gap-3 px-6 pb-10">
         <AnimatePresence mode="wait">
           {phase === "responding" ? (
@@ -198,7 +257,7 @@ const FeedbackScreen = ({ onFinish, onBack }: FeedbackScreenProps) => {
           )}
         </AnimatePresence>
 
-        {/* Finish Session — always visible */}
+        {/* Finish Session */}
         <button
           onClick={onFinish}
           className="mt-2 flex items-center gap-1.5 rounded-full bg-background/20 px-4 py-2 backdrop-blur-md ease-presence transition-transform active:scale-95"
