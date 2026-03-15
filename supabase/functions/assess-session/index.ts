@@ -17,27 +17,37 @@ serve(async (req) => {
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
-    const systemPrompt = `You are a Socratic reasoning coach. You evaluate THINKING QUALITY, not grammar or speaking ability.
+    const systemPrompt = `You are a practical speaking coach. You evaluate speaking performance and give clear, actionable feedback. No abstract questions. No academic language.
 
-You will receive a conversation log from a ${mode} practice session. The log contains the user's initial response, followed by AI challenge questions and the user's subsequent responses.
+You will receive a conversation log from a ${mode} practice session with multiple rounds of user responses and AI challenge questions.
 
-Evaluate the FULL conversation and return a JSON object using the tool provided.
+Evaluate the FULL conversation and return scores and feedback using the tool provided.
 
-SCORING RULES (1-10 scale):
-- Clarity: Are the ideas understandable? Is the argument structured?
-- Logic: Do the responses support the claim? Is the reasoning consistent?
-- Evidence: Are examples, facts, or explanations used?
-- Responsiveness: Do the user responses address the challenge questions?
-- Critical Thinking: Does the user adapt their reasoning after being challenged? This score should be HIGHER when the user improves their argument across rounds.
+SCORING (1-10 scale):
+- Clarity: Was the main idea easy to understand? Was the argument well-structured?
+- Logic: Did the responses support the claim? Was the reasoning consistent across rounds?
+- Evidence: Were specific examples, facts, or concrete explanations used?
+- Confidence: Did the speaker sound assured? Did they commit to their points or hedge excessively?
+- Pacing: Was the speaking pace appropriate? Too fast, too slow, or well-controlled?
+- Filler Words: How well did the speaker avoid filler words like "um", "uh", "like", "you know"?
 
 FEEDBACK RULES:
-- Never be judgmental or grammar-focused.
-- Use reflective Socratic questions, not direct criticism.
-- Examples: "What evidence could strengthen your claim?", "How might someone challenge this argument?", "Did your final response fully address the last challenge?"
+- Write 1 sentence of direct coaching feedback per category.
+- Use simple, clear language a teenager could understand.
+- Be specific to what happened in the conversation.
+- NEVER use abstract questions like "How might you..." or "What could you consider..."
+- GOOD: "Your main idea was clear, but stating your key point in the first sentence would be stronger."
+- GOOD: "You responded to the challenge, but adding one concrete example would be more convincing."
+- GOOD: "Your pace was slightly fast. Slowing down on important points will help your message land."
+- BAD: "How might you better articulate your thesis to your audience?"
 
-REFLECTION QUESTIONS:
-- Generate 2-3 reflection questions that help the user improve their reasoning.
-- These should be specific to what happened in the conversation.`;
+TIPS RULES:
+- Generate 2-3 short, actionable tips based on the actual transcript.
+- Each tip should be something the user can apply immediately in their next session.
+- Format: direct instruction, not a question.
+- Example: "Use one specific example to support each key point."
+- Example: "Reduce filler words like 'um' during your opening statement."
+- Example: "Pause for one second after making an important point."`;
 
     const response = await fetch(
       "https://ai.gateway.lovable.dev/v1/chat/completions",
@@ -58,7 +68,7 @@ REFLECTION QUESTIONS:
               type: "function",
               function: {
                 name: "submit_assessment",
-                description: "Submit the session assessment with scores and feedback.",
+                description: "Submit the session assessment with scores, feedback, and tips.",
                 parameters: {
                   type: "object",
                   properties: {
@@ -68,20 +78,34 @@ REFLECTION QUESTIONS:
                         clarity: { type: "number", minimum: 1, maximum: 10 },
                         logic: { type: "number", minimum: 1, maximum: 10 },
                         evidence: { type: "number", minimum: 1, maximum: 10 },
-                        responsiveness: { type: "number", minimum: 1, maximum: 10 },
-                        critical_thinking: { type: "number", minimum: 1, maximum: 10 },
+                        confidence: { type: "number", minimum: 1, maximum: 10 },
+                        pacing: { type: "number", minimum: 1, maximum: 10 },
+                        filler_words: { type: "number", minimum: 1, maximum: 10 },
                       },
-                      required: ["clarity", "logic", "evidence", "responsiveness", "critical_thinking"],
+                      required: ["clarity", "logic", "evidence", "confidence", "pacing", "filler_words"],
                       additionalProperties: false,
                     },
-                    reflection_questions: {
+                    feedback: {
+                      type: "object",
+                      properties: {
+                        clarity: { type: "string" },
+                        logic: { type: "string" },
+                        evidence: { type: "string" },
+                        confidence: { type: "string" },
+                        pacing: { type: "string" },
+                        filler_words: { type: "string" },
+                      },
+                      required: ["clarity", "logic", "evidence", "confidence", "pacing", "filler_words"],
+                      additionalProperties: false,
+                    },
+                    tips: {
                       type: "array",
                       items: { type: "string" },
                       minItems: 2,
                       maxItems: 3,
                     },
                   },
-                  required: ["scores", "reflection_questions"],
+                  required: ["scores", "feedback", "tips"],
                   additionalProperties: false,
                 },
               },
