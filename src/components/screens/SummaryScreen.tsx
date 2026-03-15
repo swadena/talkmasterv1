@@ -77,12 +77,12 @@ const SummaryScreen = ({ mode, conversationLog, onNewSession, onBack }: SummaryS
     fetchAssessment();
   }, [conversationLog, mode]);
 
-  const metrics = assessment
+  const metrics = assessment?.scores && assessment?.feedback
     ? METRIC_KEYS.map(({ key, label }) => ({
         label,
-        score: assessment.scores[key],
+        score: assessment.scores[key] ?? 0,
         max: 10,
-        feedback: assessment.feedback[key],
+        feedback: assessment.feedback[key] ?? "",
       }))
     : [];
 
