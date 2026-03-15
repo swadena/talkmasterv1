@@ -9,10 +9,19 @@ interface Assessment {
     clarity: number;
     logic: number;
     evidence: number;
-    responsiveness: number;
-    critical_thinking: number;
+    confidence: number;
+    pacing: number;
+    filler_words: number;
   };
-  reflection_questions: string[];
+  feedback: {
+    clarity: string;
+    logic: string;
+    evidence: string;
+    confidence: string;
+    pacing: string;
+    filler_words: string;
+  };
+  tips: string[];
 }
 
 interface SummaryScreenProps {
@@ -32,6 +41,15 @@ const formatConversationLog = (log: ConversationEntry[]): string => {
     })
     .join("\n\n");
 };
+
+const METRIC_KEYS: { key: keyof Assessment["scores"]; label: string }[] = [
+  { key: "clarity", label: "Clarity" },
+  { key: "logic", label: "Logic" },
+  { key: "evidence", label: "Evidence" },
+  { key: "confidence", label: "Confidence" },
+  { key: "pacing", label: "Pacing" },
+  { key: "filler_words", label: "Filler Words" },
+];
 
 const SummaryScreen = ({ mode, conversationLog, onNewSession, onBack }: SummaryScreenProps) => {
   const [assessment, setAssessment] = useState<Assessment | null>(null);
@@ -60,20 +78,19 @@ const SummaryScreen = ({ mode, conversationLog, onNewSession, onBack }: SummaryS
   }, [conversationLog, mode]);
 
   const metrics = assessment
-    ? [
-        { label: "Clarity", score: assessment.scores.clarity, max: 10 },
-        { label: "Logic", score: assessment.scores.logic, max: 10 },
-        { label: "Evidence", score: assessment.scores.evidence, max: 10 },
-        { label: "Responsiveness", score: assessment.scores.responsiveness, max: 10 },
-        { label: "Critical Thinking", score: assessment.scores.critical_thinking, max: 10 },
-      ]
+    ? METRIC_KEYS.map(({ key, label }) => ({
+        label,
+        score: assessment.scores[key],
+        max: 10,
+        feedback: assessment.feedback[key],
+      }))
     : [];
 
   const totalScore = metrics.length
     ? Math.round(metrics.reduce((sum, m) => sum + (m.score / m.max) * 100, 0) / metrics.length)
     : 0;
 
-  const tips = assessment?.reflection_questions ?? [];
+  const tips = assessment?.tips ?? [];
 
   return (
     <motion.div
@@ -81,7 +98,7 @@ const SummaryScreen = ({ mode, conversationLog, onNewSession, onBack }: SummaryS
       animate={{ y: 0 }}
       exit={{ y: "100%" }}
       transition={{ duration: 0.4, ease: [0.2, 0, 0, 1] }}
-      className="flex h-full flex-col px-6 pt-14 pb-8"
+      className="flex h-full flex-col px-6 pt-14 pb-8 overflow-y-auto"
     >
       {/* Header */}
       <div className="flex items-center gap-3">
@@ -147,28 +164,30 @@ const SummaryScreen = ({ mode, conversationLog, onNewSession, onBack }: SummaryS
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 0.3 + i * 0.05, duration: 0.3 }}
-                className="flex items-center gap-3"
               >
-                <CheckCircle2 className="h-4 w-4 text-success flex-shrink-0" />
-                <span className="w-28 text-sm text-foreground">{m.label}</span>
-                <div className="flex-1 h-2 rounded-full bg-surface overflow-hidden">
-                  <motion.div
-                    className="h-full rounded-full bg-primary"
-                    initial={{ width: 0 }}
-                    animate={{ width: `${(m.score / m.max) * 100}%` }}
-                    transition={{ delay: 0.5 + i * 0.05, duration: 0.5, ease: [0.2, 0, 0, 1] }}
-                  />
+                <div className="flex items-center gap-3">
+                  <CheckCircle2 className="h-4 w-4 text-success flex-shrink-0" />
+                  <span className="w-24 text-sm text-foreground">{m.label}</span>
+                  <div className="flex-1 h-2 rounded-full bg-surface overflow-hidden">
+                    <motion.div
+                      className="h-full rounded-full bg-primary"
+                      initial={{ width: 0 }}
+                      animate={{ width: `${(m.score / m.max) * 100}%` }}
+                      transition={{ delay: 0.5 + i * 0.05, duration: 0.5, ease: [0.2, 0, 0, 1] }}
+                    />
+                  </div>
+                  <span className="tabular-nums text-sm font-medium text-foreground w-10 text-right">
+                    {m.score}/{m.max}
+                  </span>
                 </div>
-                <span className="tabular-nums text-sm font-medium text-foreground w-10 text-right">
-                  {m.score}/{m.max}
-                </span>
+                <p className="ml-7 mt-1 text-[11px] leading-relaxed text-muted-foreground">{m.feedback}</p>
               </motion.div>
             ))}
           </div>
 
           {/* Tips */}
           <div className="mt-6 rounded-3xl bg-surface p-5 card-depth">
-            <h3 className="text-sm font-semibold text-foreground mb-3">Reflect & Improve</h3>
+            <h3 className="text-sm font-semibold text-foreground mb-3">Tips for Improvement</h3>
             <ul className="flex flex-col gap-2">
               {tips.map((tip, i) => (
                 <li key={i} className="text-xs leading-relaxed text-muted-foreground">
