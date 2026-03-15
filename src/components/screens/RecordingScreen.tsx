@@ -2,7 +2,11 @@ import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ChevronLeft } from "lucide-react";
 import coachAvatar from "@/assets/coach-avatar.jpg";
+import VideoAvatar from "@/components/VideoAvatar";
 import type { PracticeMode } from "@/pages/Index";
+
+const MAX_DURATION = 120; // 2 minutes
+const WARNING_THRESHOLD = 10; // last 10 seconds
 
 interface RecordingScreenProps {
   mode: PracticeMode;
@@ -14,7 +18,11 @@ const RecordingScreen = ({ mode, onStop, onBack }: RecordingScreenProps) => {
   const [phase, setPhase] = useState<"countdown" | "recording">("countdown");
   const [countdown, setCountdown] = useState(3);
   const [elapsed, setElapsed] = useState(0);
+  const [showWarning, setShowWarning] = useState(false);
 
+  const remaining = MAX_DURATION - elapsed;
+
+  // Countdown
   useEffect(() => {
     if (phase !== "countdown") return;
     if (countdown <= 0) {
@@ -25,11 +33,33 @@ const RecordingScreen = ({ mode, onStop, onBack }: RecordingScreenProps) => {
     return () => clearTimeout(t);
   }, [countdown, phase]);
 
+  // Recording timer
   useEffect(() => {
     if (phase !== "recording") return;
     const t = setInterval(() => setElapsed(e => e + 1), 1000);
     return () => clearInterval(t);
   }, [phase]);
+
+  // Auto-stop at max duration
+  useEffect(() => {
+    if (phase === "recording" && elapsed >= MAX_DURATION) {
+      onStop();
+    }
+  }, [elapsed, phase, onStop]);
+
+  // Warning at 10 seconds remaining
+  useEffect(() => {
+    if (phase === "recording" && remaining <= WARNING_THRESHOLD && remaining > 0 && !showWarning) {
+      setShowWarning(true);
+    }
+  }, [remaining, phase, showWarning]);
+
+  // Auto-dismiss warning after 3 seconds
+  useEffect(() => {
+    if (!showWarning) return;
+    const t = setTimeout(() => setShowWarning(false), 3000);
+    return () => clearTimeout(t);
+  }, [showWarning]);
 
   const formatTime = useCallback((s: number) => {
     const m = Math.floor(s / 60);
@@ -47,12 +77,8 @@ const RecordingScreen = ({ mode, onStop, onBack }: RecordingScreenProps) => {
       transition={{ duration: 0.25, ease: [0.2, 0, 0, 1] }}
       className="relative flex h-full flex-col"
     >
-      {/* Full-bleed avatar */}
-      <img
-        src={coachAvatar}
-        alt=""
-        className="absolute inset-0 h-full w-full object-cover"
-      />
+      {/* Simulated video avatar */}
+      <VideoAvatar src={coachAvatar} state="listening" />
 
       {/* Dark overlay */}
       <div className="absolute inset-0 bg-gradient-to-b from-background/60 via-transparent to-background/80" />
@@ -67,8 +93,12 @@ const RecordingScreen = ({ mode, onStop, onBack }: RecordingScreenProps) => {
         </button>
         <span className="text-sm font-medium text-foreground/80">{modeLabel}</span>
         {phase === "recording" ? (
-          <div className="rounded-full bg-background/20 px-3 py-1 backdrop-blur-md">
-            <span className="tabular-nums text-sm font-medium text-foreground">
+          <div className={`rounded-full px-3 py-1 backdrop-blur-md transition-colors duration-300 ${
+            remaining <= WARNING_THRESHOLD ? "bg-record/30" : "bg-background/20"
+          }`}>
+            <span className={`tabular-nums text-sm font-medium transition-colors duration-300 ${
+              remaining <= WARNING_THRESHOLD ? "text-record" : "text-foreground"
+            }`}>
               {formatTime(elapsed)}
             </span>
           </div>
@@ -76,6 +106,23 @@ const RecordingScreen = ({ mode, onStop, onBack }: RecordingScreenProps) => {
           <div className="w-10" />
         )}
       </div>
+
+      {/* 10-second warning toast */}
+      <AnimatePresence>
+        {showWarning && (
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            transition={{ duration: 0.3 }}
+            className="absolute top-28 left-1/2 -translate-x-1/2 z-20 rounded-full bg-record/90 px-4 py-1.5 backdrop-blur-md"
+          >
+            <span className="text-xs font-medium text-record-foreground">
+              10 seconds remaining
+            </span>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Center content */}
       <div className="relative z-10 flex flex-1 items-center justify-center">
