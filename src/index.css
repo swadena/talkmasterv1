@@ -86,3 +86,17 @@
     text-wrap: pretty;
   }
 }
+
+/* Simulated video-call "alive" effect — subtle continuous motion */
+@keyframes avatar-alive {
+  0% { transform: scale(1.05) translate(0, 0); }
+  25% { transform: scale(1.06) translate(-0.3%, 0.2%); }
+  50% { transform: scale(1.05) translate(0.2%, -0.3%); }
+  75% { transform: scale(1.06) translate(0.1%, 0.15%); }
+  100% { transform: scale(1.05) translate(0, 0); }
+}
+
+.video-avatar-alive {
+  animation: avatar-alive 8s ease-in-out infinite;
+  will-change: transform;
+}
