@@ -1,12 +1,11 @@
 import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ChevronLeft } from "lucide-react";
-import coachAvatar from "@/assets/coach-avatar.jpg";
 import VideoAvatar from "@/components/VideoAvatar";
 import type { PracticeMode } from "@/pages/Index";
 
-const MAX_DURATION = 120; // 2 minutes
-const WARNING_THRESHOLD = 10; // last 10 seconds
+const MAX_DURATION = 120;
+const WARNING_THRESHOLD = 10;
 
 interface RecordingScreenProps {
   mode: PracticeMode;
@@ -22,39 +21,29 @@ const RecordingScreen = ({ mode, onStop, onBack }: RecordingScreenProps) => {
 
   const remaining = MAX_DURATION - elapsed;
 
-  // Countdown
   useEffect(() => {
     if (phase !== "countdown") return;
-    if (countdown <= 0) {
-      setPhase("recording");
-      return;
-    }
+    if (countdown <= 0) { setPhase("recording"); return; }
     const t = setTimeout(() => setCountdown(c => c - 1), 1000);
     return () => clearTimeout(t);
   }, [countdown, phase]);
 
-  // Recording timer
   useEffect(() => {
     if (phase !== "recording") return;
     const t = setInterval(() => setElapsed(e => e + 1), 1000);
     return () => clearInterval(t);
   }, [phase]);
 
-  // Auto-stop at max duration
   useEffect(() => {
-    if (phase === "recording" && elapsed >= MAX_DURATION) {
-      onStop();
-    }
+    if (phase === "recording" && elapsed >= MAX_DURATION) onStop();
   }, [elapsed, phase, onStop]);
 
-  // Warning at 10 seconds remaining
   useEffect(() => {
     if (phase === "recording" && remaining <= WARNING_THRESHOLD && remaining > 0 && !showWarning) {
       setShowWarning(true);
     }
   }, [remaining, phase, showWarning]);
 
-  // Auto-dismiss warning after 3 seconds
   useEffect(() => {
     if (!showWarning) return;
     const t = setTimeout(() => setShowWarning(false), 3000);
@@ -77,11 +66,7 @@ const RecordingScreen = ({ mode, onStop, onBack }: RecordingScreenProps) => {
       transition={{ duration: 0.25, ease: [0.2, 0, 0, 1] }}
       className="relative flex h-full flex-col"
     >
-      {/* Simulated video avatar */}
-      <VideoAvatar src={coachAvatar} state="listening" />
-
-      {/* Dark overlay */}
-      <div className="absolute inset-0 bg-gradient-to-b from-background/60 via-transparent to-background/80" />
+      <VideoAvatar state="listening" />
 
       {/* Top bar */}
       <div className="relative z-10 flex items-center justify-between px-6 pt-14">
@@ -107,7 +92,7 @@ const RecordingScreen = ({ mode, onStop, onBack }: RecordingScreenProps) => {
         )}
       </div>
 
-      {/* 10-second warning toast */}
+      {/* 10-second warning */}
       <AnimatePresence>
         {showWarning && (
           <motion.div
@@ -117,14 +102,12 @@ const RecordingScreen = ({ mode, onStop, onBack }: RecordingScreenProps) => {
             transition={{ duration: 0.3 }}
             className="absolute top-28 left-1/2 -translate-x-1/2 z-20 rounded-full bg-record/90 px-4 py-1.5 backdrop-blur-md"
           >
-            <span className="text-xs font-medium text-record-foreground">
-              10 seconds remaining
-            </span>
+            <span className="text-xs font-medium text-record-foreground">10 seconds remaining</span>
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* Center content */}
+      {/* Center countdown */}
       <div className="relative z-10 flex flex-1 items-center justify-center">
         <AnimatePresence mode="wait">
           {phase === "countdown" && countdown > 0 && (
@@ -145,22 +128,15 @@ const RecordingScreen = ({ mode, onStop, onBack }: RecordingScreenProps) => {
       {/* Bottom controls */}
       <div className="relative z-10 flex flex-col items-center gap-4 pb-12">
         {phase === "recording" && (
-          <motion.p
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="text-xs text-foreground/50"
-          >
+          <motion.p initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="text-xs text-foreground/50">
             Listening...
           </motion.p>
         )}
-
         <button
           onClick={phase === "recording" ? onStop : undefined}
           disabled={phase !== "recording"}
           className={`flex h-16 w-16 items-center justify-center rounded-full ease-presence transition-all duration-250 will-change-transform active:scale-90 ${
-            phase === "recording"
-              ? "bg-record animate-pulse-record"
-              : "bg-muted"
+            phase === "recording" ? "bg-record animate-pulse-record" : "bg-muted"
           }`}
         >
           {phase === "recording" ? (
@@ -169,13 +145,8 @@ const RecordingScreen = ({ mode, onStop, onBack }: RecordingScreenProps) => {
             <div className="h-4 w-4 rounded-full bg-muted-foreground/40" />
           )}
         </button>
-
         {phase === "recording" && (
-          <motion.span
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="text-xs text-muted-foreground"
-          >
+          <motion.span initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-xs text-muted-foreground">
             Tap to stop
           </motion.span>
         )}
