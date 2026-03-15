@@ -3,7 +3,8 @@ import { useRef, useState, useCallback } from "react";
 // Extend Window for webkit prefix
 declare global {
   interface Window {
-    webkitSpeechRecognition: typeof SpeechRecognition;
+    SpeechRecognition: any;
+    webkitSpeechRecognition: any;
   }
 }
 
