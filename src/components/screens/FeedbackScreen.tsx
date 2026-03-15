@@ -5,7 +5,7 @@ import VideoAvatar from "@/components/VideoAvatar";
 import { useSpeechToText } from "@/hooks/useSpeechToText";
 import { useTextToSpeech } from "@/hooks/useTextToSpeech";
 import { supabase } from "@/integrations/supabase/client";
-import type { PracticeMode } from "@/pages/Index";
+import type { PracticeMode, ConversationEntry } from "@/pages/Index";
 
 const RESPONSE_MAX = 60;
 const RESPONSE_WARNING = 10;
@@ -36,18 +36,20 @@ const fallbackPrompts: Record<string, string[]> = {
 interface FeedbackScreenProps {
   mode: PracticeMode;
   initialTranscript: string;
-  onFinish: () => void;
+  initialConversationLog: ConversationEntry[];
+  onFinish: (conversationLog: ConversationEntry[]) => void;
   onBack: () => void;
 }
 
 type Phase = "thinking" | "speaking" | "responding";
 
-const FeedbackScreen = ({ mode, initialTranscript, onFinish, onBack }: FeedbackScreenProps) => {
+const FeedbackScreen = ({ mode, initialTranscript, initialConversationLog, onFinish, onBack }: FeedbackScreenProps) => {
   const [phase, setPhase] = useState<Phase>("thinking");
   const [round, setRound] = useState(0);
   const [currentPrompt, setCurrentPrompt] = useState("");
   const [responseTimer, setResponseTimer] = useState(0);
   const [previousChallenges, setPreviousChallenges] = useState<string[]>([]);
+  const conversationLogRef = useRef<ConversationEntry[]>([...initialConversationLog]);
   const latestTranscriptRef = useRef(initialTranscript);
   const stt = useSpeechToText();
   const tts = useTextToSpeech();
@@ -93,6 +95,14 @@ const FeedbackScreen = ({ mode, initialTranscript, onFinish, onBack }: FeedbackS
       const prompt = challenge || getFallback();
       setCurrentPrompt(prompt);
       setPreviousChallenges((prev) => [...prev, prompt]);
+
+      // Log the challenge
+      conversationLogRef.current.push({
+        role: "challenge",
+        text: prompt,
+        round: round + 1,
+      });
+
       setPhase("speaking");
 
       // Speak the challenge aloud; wait for it to finish
@@ -125,21 +135,39 @@ const FeedbackScreen = ({ mode, initialTranscript, onFinish, onBack }: FeedbackS
   useEffect(() => {
     if (phase === "responding" && responseTimer >= RESPONSE_MAX) {
       const text = stt.stop();
-      latestTranscriptRef.current = text || stt.transcript;
+      const userResponse = text || stt.transcript;
+      latestTranscriptRef.current = userResponse;
+
+      // Log user response
+      conversationLogRef.current.push({
+        role: "user",
+        text: userResponse,
+        round: round + 1,
+      });
+
       setRound((r) => r + 1);
     }
   }, [responseTimer, phase]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleStopResponse = () => {
     const text = stt.stop();
-    latestTranscriptRef.current = text || stt.transcript;
+    const userResponse = text || stt.transcript;
+    latestTranscriptRef.current = userResponse;
+
+    // Log user response
+    conversationLogRef.current.push({
+      role: "user",
+      text: userResponse,
+      round: round + 1,
+    });
+
     setRound((r) => r + 1);
   };
 
   const handleFinish = () => {
     tts.cancel();
     stt.stop();
-    onFinish();
+    onFinish(conversationLogRef.current);
   };
 
   const handleBack = () => {
