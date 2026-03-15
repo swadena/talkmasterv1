@@ -11,10 +11,17 @@ export type PracticeMode = "debate" | "interview" | "pitch" | "presentation";
 const Index = () => {
   const [screen, setScreen] = useState<AppScreen>("home");
   const [mode, setMode] = useState<PracticeMode>("interview");
+  const [transcript, setTranscript] = useState("");
 
   const handleStart = (selectedMode: PracticeMode) => {
     setMode(selectedMode);
+    setTranscript("");
     setScreen("recording");
+  };
+
+  const handleRecordingStop = (recordedTranscript: string) => {
+    setTranscript(recordedTranscript);
+    setScreen("feedback");
   };
 
   return (
@@ -42,7 +49,7 @@ const Index = () => {
             <RecordingScreen
               key="recording"
               mode={mode}
-              onStop={() => setScreen("feedback")}
+              onStop={handleRecordingStop}
               onBack={() => setScreen("home")}
             />
           )}
@@ -50,6 +57,7 @@ const Index = () => {
             <FeedbackScreen
               key="feedback"
               mode={mode}
+              initialTranscript={transcript}
               onFinish={() => setScreen("summary")}
               onBack={() => setScreen("recording")}
             />
