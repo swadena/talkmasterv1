@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { ChevronLeft, CheckCircle } from "lucide-react";
 import VideoAvatar from "@/components/VideoAvatar";
 import { useSpeechToText } from "@/hooks/useSpeechToText";
+import { useTextToSpeech } from "@/hooks/useTextToSpeech";
 import { supabase } from "@/integrations/supabase/client";
 import type { PracticeMode } from "@/pages/Index";
 
@@ -49,6 +50,7 @@ const FeedbackScreen = ({ mode, initialTranscript, onFinish, onBack }: FeedbackS
   const [previousChallenges, setPreviousChallenges] = useState<string[]>([]);
   const latestTranscriptRef = useRef(initialTranscript);
   const stt = useSpeechToText();
+  const tts = useTextToSpeech();
 
   const remaining = RESPONSE_MAX - responseTimer;
 
@@ -76,9 +78,10 @@ const FeedbackScreen = ({ mode, initialTranscript, onFinish, onBack }: FeedbackS
     return list[Math.floor(Math.random() * list.length)];
   }, [mode, previousChallenges]);
 
-  // Each round: thinking → speaking → responding
+  // Each round: thinking → speaking (with TTS) → responding
   useEffect(() => {
     let cancelled = false;
+
     setPhase("thinking");
     setResponseTimer(0);
 
@@ -92,18 +95,22 @@ const FeedbackScreen = ({ mode, initialTranscript, onFinish, onBack }: FeedbackS
       setPreviousChallenges((prev) => [...prev, prompt]);
       setPhase("speaking");
 
-      // After 3s of "speaking", auto-transition to responding
-      setTimeout(() => {
-        if (!cancelled) {
-          setPhase("responding");
-          stt.start();
-        }
-      }, 3000);
+      // Speak the challenge aloud; wait for it to finish
+      await tts.speak(prompt);
+      if (cancelled) return;
+
+      // Small pause after speech ends before mic activates
+      await new Promise((r) => setTimeout(r, 600));
+      if (cancelled) return;
+
+      setPhase("responding");
+      stt.start();
     };
 
     run();
     return () => {
       cancelled = true;
+      tts.cancel();
     };
   }, [round]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -129,6 +136,18 @@ const FeedbackScreen = ({ mode, initialTranscript, onFinish, onBack }: FeedbackS
     setRound((r) => r + 1);
   };
 
+  const handleFinish = () => {
+    tts.cancel();
+    stt.stop();
+    onFinish();
+  };
+
+  const handleBack = () => {
+    tts.cancel();
+    stt.stop();
+    onBack();
+  };
+
   const formatTime = (s: number) => {
     const m = Math.floor(s / 60);
     const sec = s % 60;
@@ -151,7 +170,7 @@ const FeedbackScreen = ({ mode, initialTranscript, onFinish, onBack }: FeedbackS
       {/* Top bar */}
       <div className="relative z-10 flex items-center justify-between px-6 pt-14">
         <button
-          onClick={onBack}
+          onClick={handleBack}
           className="flex h-10 w-10 items-center justify-center rounded-2xl bg-background/20 backdrop-blur-md ease-presence transition-transform active:scale-95"
         >
           <ChevronLeft className="h-5 w-5 text-foreground" />
@@ -259,7 +278,7 @@ const FeedbackScreen = ({ mode, initialTranscript, onFinish, onBack }: FeedbackS
 
         {/* Finish Session */}
         <button
-          onClick={onFinish}
+          onClick={handleFinish}
           className="mt-2 flex items-center gap-1.5 rounded-full bg-background/20 px-4 py-2 backdrop-blur-md ease-presence transition-transform active:scale-95"
         >
           <CheckCircle className="h-3.5 w-3.5 text-success" />
