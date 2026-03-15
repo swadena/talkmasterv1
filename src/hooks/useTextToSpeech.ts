@@ -23,21 +23,43 @@ export function useTextToSpeech() {
         window.speechSynthesis.cancel();
 
         const utterance = new SpeechSynthesisUtterance(text);
-        utterance.rate = 0.95;
-        utterance.pitch = 1.0;
+        utterance.rate = 0.92;
+        utterance.pitch = 1.05;
         utterance.volume = 1.0;
 
-        // Try to pick a natural-sounding English voice
+        // Pick the most natural-sounding English voice available
         const voices = window.speechSynthesis.getVoices();
-        const preferred = voices.find(
-          (v) =>
-            v.lang.startsWith("en") &&
-            (v.name.includes("Google") ||
-              v.name.includes("Samantha") ||
-              v.name.includes("Daniel") ||
-              v.name.includes("Karen") ||
-              v.name.includes("Natural"))
-        );
+        
+        // Priority order: premium neural voices first, then quality defaults
+        const voicePreferences = [
+          "Google UK English Male",
+          "Google UK English Female", 
+          "Daniel",
+          "Samantha",
+          "Karen",
+          "Google US English",
+          "Microsoft David",
+          "Microsoft Zira",
+        ];
+        
+        let preferred = null;
+        for (const name of voicePreferences) {
+          preferred = voices.find((v) => v.name.includes(name) && v.lang.startsWith("en"));
+          if (preferred) break;
+        }
+        
+        // Fallback: any English voice marked as natural/premium
+        if (!preferred) {
+          preferred = voices.find(
+            (v) => v.lang.startsWith("en") && (v.name.includes("Natural") || v.name.includes("Neural") || v.name.includes("Premium"))
+          );
+        }
+        
+        // Final fallback: any English voice
+        if (!preferred) {
+          preferred = voices.find((v) => v.lang.startsWith("en"));
+        }
+        
         if (preferred) utterance.voice = preferred;
 
         utterance.onstart = () => setIsSpeaking(true);

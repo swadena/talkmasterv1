@@ -6,11 +6,37 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-const topicSystemPrompts: Record<string, string> = {
-  debate: `You are a sharp debate coach. Analyze the user's argument and ask a pointed challenge question that targets the weakest part of their reasoning. Focus on logical gaps, unsupported claims, or missing counter-arguments. If no clear argument is found, ask: "What is your strongest argument for your position?"`,
-  interview: `You are an experienced interview coach. Analyze the user's answer and ask a follow-up question an interviewer would ask to probe deeper. Focus on specifics, examples, or inconsistencies. If no clear answer is found, ask: "How would you answer this question convincingly in a real interview?"`,
-  pitch: `You are a skeptical investor evaluating a pitch. Analyze the user's pitch and ask a tough question about viability, market, differentiation, or evidence. If no clear pitch is found, ask: "Why should someone invest in this idea?"`,
-  presentation: `You are an audience member at a presentation. Analyze the user's speech and ask a question about clarity, evidence, or the main takeaway. If no clear presentation is found, ask: "What is the main takeaway you want your audience to remember?"`,
+const scenarioPersonas: Record<string, string> = {
+  debate: `You are a warm but sharp debate coach having a real conversation. You genuinely listen and respond like a thoughtful human sparring partner — not a quiz show host. Your tone is encouraging but intellectually honest.`,
+  interview: `You are a friendly, experienced interviewer conducting a realistic job interview. You respond naturally, like a real hiring manager — curious, empathetic, but probing. You want to understand the person, not interrogate them.`,
+  pitch: `You are a thoughtful investor in a casual pitch meeting. You're genuinely interested but naturally skeptical. Your questions feel like a real conversation over coffee, not a formal Q&A.`,
+  presentation: `You are an engaged audience member at a presentation. You ask questions because you're genuinely curious and want to understand better — not to trip up the speaker.`,
+};
+
+const questionGuidance: Record<string, { light: string; deep: string }> = {
+  debate: {
+    light: "Ask a clarifying or restating question about their argument. E.g. 'What do you mean by...?', 'Can you give an example of...?', 'So you're saying that...?'",
+    deep: "Challenge the underlying logic, evidence, or assumptions. Ask for counterpoints. E.g. 'What evidence supports...?', 'How would you respond to someone who says...?', 'Isn't it possible that...?'",
+  },
+  interview: {
+    light: "Ask a natural follow-up about their experience or reasoning. E.g. 'Can you walk me through that?', 'What was your role in that?', 'How did that turn out?'",
+    deep: "Probe deeper into their reasoning, decision-making, or self-awareness. E.g. 'What would you do differently?', 'How did you measure success there?', 'What was the hardest part and why?'",
+  },
+  pitch: {
+    light: "Ask a simple clarifying question about the idea. E.g. 'Who exactly is this for?', 'How does that work in practice?', 'What's the current status?'",
+    deep: "Challenge the value proposition, market assumptions, or evidence. E.g. 'What makes you confident about that market size?', 'How is this different from X?', 'What's your biggest risk?'",
+  },
+  presentation: {
+    light: "Ask about clarity or a specific point. E.g. 'Could you elaborate on that point?', 'What do you mean by...?', 'How does that connect to your main point?'",
+    deep: "Challenge the structure, evidence, or main takeaway. E.g. 'What data supports that conclusion?', 'How would you explain this to someone unfamiliar?', 'What's the strongest counterargument?'",
+  },
+};
+
+const fallbackPrompts: Record<string, string> = {
+  debate: "What is your strongest argument for your position?",
+  interview: "Tell me about a time you faced a significant challenge at work. How did you handle it?",
+  pitch: "In one sentence, why should someone invest in this idea?",
+  presentation: "What's the one thing you want your audience to remember from this?",
 };
 
 serve(async (req) => {
@@ -19,20 +45,36 @@ serve(async (req) => {
   }
 
   try {
-    const { transcript, mode, previousChallenges } = await req.json();
+    const { transcript, mode, previousChallenges, roundNumber } = await req.json();
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
-    const systemPrompt = topicSystemPrompts[mode] || topicSystemPrompts.debate;
+    const persona = scenarioPersonas[mode] || scenarioPersonas.debate;
+    const guidance = questionGuidance[mode] || questionGuidance.debate;
+
+    // Alternate: rounds 0,1,2 = light, round 3 = deep, rounds 4,5 = light, round 6 = deep, etc.
+    const isDeepRound = roundNumber > 0 && roundNumber % 3 === 0;
+    const questionType = isDeepRound ? "deep" : "light";
+    const questionInstruction = isDeepRound ? guidance.deep : guidance.light;
 
     const previousContext = previousChallenges?.length
-      ? `\n\nPrevious challenges already asked (do NOT repeat these):\n${previousChallenges.map((c: string, i: number) => `${i + 1}. ${c}`).join("\n")}`
+      ? `\n\nQuestions already asked (do NOT repeat or rephrase these):\n${previousChallenges.map((c: string, i: number) => `${i + 1}. ${c}`).join("\n")}`
       : "";
 
+    const systemPrompt = `${persona}
+
+IMPORTANT RULES:
+- Generate exactly ONE question. No preamble, no "Great point!" — just the question itself.
+- The question must sound like something a real person would say in conversation.
+- Keep it to 1-2 sentences maximum.
+- This is round ${roundNumber + 1}. This should be a ${questionType} question.
+- ${questionInstruction}
+- Never repeat or closely rephrase a previous question.${previousContext}`;
+
     const userMessage = transcript?.trim()
-      ? `Here is what the user just said:\n\n"${transcript}"\n\nGenerate ONE short, natural challenge question (1-2 sentences max) that directly relates to what they said. Make it feel like a real conversation, not a quiz.${previousContext}`
-      : `The user didn't say anything clearly. Ask a natural opening challenge question for a ${mode} session.${previousContext}`;
+      ? `The user just said:\n\n"${transcript}"\n\nGenerate a ${questionType} follow-up question that directly responds to what they said.`
+      : `The user hasn't said anything clear yet. Ask a natural opening question for a ${mode} session. Use this as a starting point: "${fallbackPrompts[mode]}" — but rephrase it naturally.`;
 
     const response = await fetch(
       "https://ai.gateway.lovable.dev/v1/chat/completions",
@@ -71,10 +113,13 @@ serve(async (req) => {
     }
 
     const data = await response.json();
-    const challenge =
+    let challenge =
       data.choices?.[0]?.message?.content?.trim() || "Can you elaborate on that?";
 
-    return new Response(JSON.stringify({ challenge }), {
+    // Strip any leading quotes the model might add
+    challenge = challenge.replace(/^["']|["']$/g, "");
+
+    return new Response(JSON.stringify({ challenge, questionType }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e) {
