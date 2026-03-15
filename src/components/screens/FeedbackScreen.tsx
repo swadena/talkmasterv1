@@ -1,8 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ChevronLeft, Mic, CheckCircle } from "lucide-react";
-import coachSpeaking from "@/assets/coach-speaking.jpg";
-import coachThinking from "@/assets/coach-thinking.jpg";
+import { ChevronLeft, CheckCircle } from "lucide-react";
 import VideoAvatar from "@/components/VideoAvatar";
 import type { PracticeMode } from "@/pages/Index";
 
@@ -17,7 +15,7 @@ const challengePrompts = [
   "Could you be more precise about that?",
 ];
 
-const RESPONSE_MAX = 60; // 1 minute max per response
+const RESPONSE_MAX = 60;
 const RESPONSE_WARNING = 10;
 
 interface FeedbackScreenProps {
@@ -26,7 +24,8 @@ interface FeedbackScreenProps {
   onBack: () => void;
 }
 
-type Phase = "thinking" | "speaking" | "ready" | "responding";
+// thinking → speaking (AI delivers challenge) → responding (user talks) → loop
+type Phase = "thinking" | "speaking" | "responding";
 
 const FeedbackScreen = ({ onFinish, onBack }: FeedbackScreenProps) => {
   const [phase, setPhase] = useState<Phase>("thinking");
@@ -37,29 +36,24 @@ const FeedbackScreen = ({ onFinish, onBack }: FeedbackScreenProps) => {
 
   const remaining = RESPONSE_MAX - responseTimer;
 
-  // Pick a random unused prompt
   const pickPrompt = useCallback(() => {
-    const available = challengePrompts
-      .map((_, i) => i)
-      .filter(i => !usedPrompts.includes(i));
+    const available = challengePrompts.map((_, i) => i).filter(i => !usedPrompts.includes(i));
     const pool = available.length > 0 ? available : challengePrompts.map((_, i) => i);
     const idx = pool[Math.floor(Math.random() * pool.length)];
     setUsedPrompts(prev => [...prev, idx]);
     setCurrentPrompt(challengePrompts[idx]);
   }, [usedPrompts]);
 
-  // Simulate thinking → speaking → ready on each round
+  // Each round: thinking → speaking → responding (auto-ready mic)
   useEffect(() => {
     setPhase("thinking");
     setResponseTimer(0);
     pickPrompt();
 
     const t1 = setTimeout(() => setPhase("speaking"), 1500);
-    const t2 = setTimeout(() => setPhase("ready"), 4500);
-    return () => {
-      clearTimeout(t1);
-      clearTimeout(t2);
-    };
+    // After "speaking" for 3s, auto-transition to responding (mic ready)
+    const t2 = setTimeout(() => setPhase("responding"), 4500);
+    return () => { clearTimeout(t1); clearTimeout(t2); };
   }, [round]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Response timer
@@ -69,20 +63,15 @@ const FeedbackScreen = ({ onFinish, onBack }: FeedbackScreenProps) => {
     return () => clearInterval(t);
   }, [phase]);
 
-  // Auto-stop response at max
+  // Auto-stop at max → next round automatically
   useEffect(() => {
     if (phase === "responding" && responseTimer >= RESPONSE_MAX) {
-      handleResponseDone();
+      setRound(r => r + 1);
     }
-  }, [responseTimer, phase]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [responseTimer, phase]);
 
-  const handleRespond = () => {
-    setPhase("responding");
-    setResponseTimer(0);
-  };
-
-  const handleResponseDone = () => {
-    // After user responds, start a new round
+  const handleStopResponse = () => {
+    // User stops talking → next round (AI challenges again)
     setRound(r => r + 1);
   };
 
@@ -93,7 +82,6 @@ const FeedbackScreen = ({ onFinish, onBack }: FeedbackScreenProps) => {
   };
 
   const avatarState = phase === "thinking" ? "thinking" : phase === "speaking" ? "speaking" : "listening";
-  const avatarSrc = phase === "thinking" ? coachThinking : coachSpeaking;
 
   return (
     <motion.div
@@ -103,9 +91,7 @@ const FeedbackScreen = ({ onFinish, onBack }: FeedbackScreenProps) => {
       transition={{ duration: 0.25, ease: [0.2, 0, 0, 1] }}
       className="relative flex h-full flex-col"
     >
-      {/* Simulated video avatar */}
-      <VideoAvatar src={avatarSrc} state={avatarState} />
-      <div className="absolute inset-0 bg-gradient-to-b from-background/60 via-transparent to-background/90" />
+      <VideoAvatar state={avatarState} />
 
       {/* Top bar */}
       <div className="relative z-10 flex items-center justify-between px-6 pt-14">
@@ -122,9 +108,6 @@ const FeedbackScreen = ({ onFinish, onBack }: FeedbackScreenProps) => {
               Round {round + 1}
             </span>
           )}
-          <span className="text-sm font-medium text-foreground/80">
-            {phase === "thinking" ? "" : phase === "speaking" ? "Speaking" : phase === "responding" ? "Your turn" : ""}
-          </span>
         </div>
 
         {phase === "responding" ? (
@@ -142,7 +125,7 @@ const FeedbackScreen = ({ onFinish, onBack }: FeedbackScreenProps) => {
         )}
       </div>
 
-      {/* Center: challenge prompt */}
+      {/* Center: challenge prompt or status */}
       <div className="relative z-10 flex flex-1 items-end justify-center pb-4">
         <AnimatePresence mode="wait">
           {phase === "speaking" && (
@@ -177,58 +160,34 @@ const FeedbackScreen = ({ onFinish, onBack }: FeedbackScreenProps) => {
               animate={{ opacity: 1, y: 0 }}
               className="rounded-3xl bg-background/20 px-5 py-2.5 backdrop-blur-xl"
             >
-              <p className="text-xs text-foreground/50">Listening to your response...</p>
+              <p className="text-xs text-foreground/50">Listening...</p>
             </motion.div>
           )}
         </AnimatePresence>
       </div>
 
-      {/* Bottom controls */}
+      {/* Bottom controls — natural conversation flow */}
       <div className="relative z-10 flex flex-col items-center gap-3 px-6 pb-10">
         <AnimatePresence mode="wait">
           {phase === "responding" ? (
             <motion.div
-              key="recording-controls"
+              key="recording"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: 20 }}
               className="flex flex-col items-center gap-3"
             >
               <button
-                onClick={handleResponseDone}
+                onClick={handleStopResponse}
                 className="flex h-16 w-16 items-center justify-center rounded-full bg-record animate-pulse-record ease-presence will-change-transform active:scale-90"
               >
                 <div className="h-6 w-6 rounded-md bg-record-foreground" />
               </button>
-              <span className="text-xs text-muted-foreground">Tap to stop</span>
-            </motion.div>
-          ) : phase === "ready" ? (
-            <motion.div
-              key="action-buttons"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 20 }}
-              transition={{ duration: 0.3 }}
-              className="flex w-full flex-col gap-3"
-            >
-              <button
-                onClick={handleRespond}
-                className="flex h-14 w-full items-center justify-center gap-2.5 rounded-2xl bg-foreground text-background font-medium ease-presence transition-transform active:scale-[0.97] will-change-transform"
-              >
-                <Mic className="h-4.5 w-4.5" />
-                Respond to Challenge
-              </button>
-              <button
-                onClick={onFinish}
-                className="flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-surface text-foreground text-sm font-medium ease-presence transition-transform active:scale-[0.97] will-change-transform"
-              >
-                <CheckCircle className="h-4 w-4 text-success" />
-                Finish Session
-              </button>
+              <span className="text-xs text-muted-foreground">Tap to respond · 1 min max</span>
             </motion.div>
           ) : (
             <motion.div
-              key="listening-indicator"
+              key="waiting"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
@@ -238,6 +197,15 @@ const FeedbackScreen = ({ onFinish, onBack }: FeedbackScreenProps) => {
             </motion.div>
           )}
         </AnimatePresence>
+
+        {/* Finish Session — always visible */}
+        <button
+          onClick={onFinish}
+          className="mt-2 flex items-center gap-1.5 rounded-full bg-background/20 px-4 py-2 backdrop-blur-md ease-presence transition-transform active:scale-95"
+        >
+          <CheckCircle className="h-3.5 w-3.5 text-success" />
+          <span className="text-xs font-medium text-foreground/70">Finish Session</span>
+        </button>
       </div>
     </motion.div>
   );

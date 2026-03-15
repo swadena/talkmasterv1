@@ -1,60 +1,64 @@
+import { useRef, useEffect } from "react";
 import { motion } from "framer-motion";
+import coachListening from "@/assets/coach-listening.mp4";
+import coachSpeakingVideo from "@/assets/coach-speaking.mp4";
 
 interface VideoAvatarProps {
-  src: string;
   state?: "listening" | "speaking" | "thinking";
 }
 
 /**
- * Simulates a live video-call participant with subtle movement animations.
- * Uses CSS keyframe-driven transforms on the image to create the illusion of
- * a living, breathing human on a video call (slight zoom drift, position shift).
+ * Renders a looping video of a real person to simulate a video-call participant.
+ * Switches between a "listening" clip and a "speaking" clip based on state.
  */
-const VideoAvatar = ({ src, state = "listening" }: VideoAvatarProps) => {
+const VideoAvatar = ({ state = "listening" }: VideoAvatarProps) => {
+  const listeningRef = useRef<HTMLVideoElement>(null);
+  const speakingRef = useRef<HTMLVideoElement>(null);
+
+  const showSpeaking = state === "speaking";
+
+  // Keep both videos playing so transitions are seamless
+  useEffect(() => {
+    listeningRef.current?.play().catch(() => {});
+    speakingRef.current?.play().catch(() => {});
+  }, []);
+
   return (
-    <div className="absolute inset-0 overflow-hidden">
-      {/* Base image with continuous subtle motion */}
-      <motion.img
-        src={src}
-        alt=""
-        className="absolute inset-0 h-full w-full object-cover video-avatar-alive"
-        initial={{ scale: 1.05 }}
-        animate={{ scale: 1.05 }}
+    <div className="absolute inset-0 overflow-hidden bg-background">
+      {/* Listening video (default) */}
+      <video
+        ref={listeningRef}
+        src={coachListening}
+        className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-700 ${
+          showSpeaking ? "opacity-0" : "opacity-100"
+        }`}
+        autoPlay
+        loop
+        muted
+        playsInline
       />
 
-      {/* Breathing overlay pulse */}
-      <motion.div
-        className="absolute inset-0"
-        animate={{
-          background: [
-            "radial-gradient(ellipse at 50% 40%, transparent 60%, hsla(0,0%,0%,0.15) 100%)",
-            "radial-gradient(ellipse at 52% 42%, transparent 58%, hsla(0,0%,0%,0.2) 100%)",
-            "radial-gradient(ellipse at 48% 38%, transparent 62%, hsla(0,0%,0%,0.12) 100%)",
-            "radial-gradient(ellipse at 50% 40%, transparent 60%, hsla(0,0%,0%,0.15) 100%)",
-          ],
-        }}
-        transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
+      {/* Speaking video */}
+      <video
+        ref={speakingRef}
+        src={coachSpeakingVideo}
+        className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-700 ${
+          showSpeaking ? "opacity-100" : "opacity-0"
+        }`}
+        autoPlay
+        loop
+        muted
+        playsInline
       />
 
-      {/* State-specific overlays */}
-      {state === "speaking" && (
-        <motion.div
-          className="absolute bottom-0 left-0 right-0 h-1/3"
-          animate={{
-            background: [
-              "linear-gradient(to top, hsla(0,0%,0%,0.3), transparent)",
-              "linear-gradient(to top, hsla(0,0%,0%,0.15), transparent)",
-              "linear-gradient(to top, hsla(0,0%,0%,0.3), transparent)",
-            ],
-          }}
-          transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
-        />
-      )}
+      {/* Subtle vignette for UI readability */}
+      <div className="absolute inset-0 bg-gradient-to-b from-background/40 via-transparent to-background/60" />
 
+      {/* Thinking overlay */}
       {state === "thinking" && (
         <motion.div
-          className="absolute inset-0 bg-background/10"
-          animate={{ opacity: [0.1, 0.2, 0.1] }}
+          className="absolute inset-0 bg-background/20"
+          animate={{ opacity: [0.15, 0.3, 0.15] }}
           transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
         />
       )}
