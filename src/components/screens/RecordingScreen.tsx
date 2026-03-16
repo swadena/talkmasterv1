@@ -114,6 +114,14 @@ const RecordingScreen = ({ mode, sessionStart, onStop, onBack }: RecordingScreen
           <ChevronLeft className="h-5 w-5 text-foreground" />
         </button>
         <span className="text-sm font-medium text-foreground/80">{modeLabel}</span>
+        <div className="flex items-center gap-2">
+          {phase === "recording" && (
+            <div className="rounded-full px-2.5 py-0.5 bg-background/20 backdrop-blur-md">
+              <span className="tabular-nums text-[10px] font-medium text-foreground/60">
+                Session: {formatTime(sessionElapsed)}
+              </span>
+            </div>
+          )}
         {phase === "recording" ? (
           <div className={`rounded-full px-3 py-1 backdrop-blur-md transition-colors duration-300 ${
             remaining <= WARNING_THRESHOLD ? "bg-record/30" : "bg-background/20"
