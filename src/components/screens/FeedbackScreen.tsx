@@ -44,7 +44,9 @@ interface FeedbackScreenProps {
   onBack: () => void;
 }
 
-type Phase = "thinking" | "speaking" | "responding";
+type Phase = "thinking" | "speaking" | "responding" | "farewell";
+
+const FAREWELL_MESSAGE = "Thanks for practicing today! See you next time. You can also finish early anytime by pressing the Finish Session button.";
 
 const FeedbackScreen = ({ mode, sessionStart, initialTranscript, initialConversationLog, onFinish, onBack }: FeedbackScreenProps) => {
   const [phase, setPhase] = useState<Phase>("thinking");
@@ -52,6 +54,7 @@ const FeedbackScreen = ({ mode, sessionStart, initialTranscript, initialConversa
   const [currentPrompt, setCurrentPrompt] = useState("");
   const [responseTimer, setResponseTimer] = useState(0);
   const [previousChallenges, setPreviousChallenges] = useState<string[]>([]);
+  const [exitAssuranceAsked, setExitAssuranceAsked] = useState(false);
   const conversationLogRef = useRef<ConversationEntry[]>([...initialConversationLog]);
   const latestTranscriptRef = useRef(initialTranscript);
   const stt = useSpeechToText();
@@ -85,7 +88,7 @@ const FeedbackScreen = ({ mode, sessionStart, initialTranscript, initialConversa
         });
 
         if (error) throw error;
-        return data?.challenge as string | undefined;
+        return data as { challenge?: string; exitIntent?: boolean; questionType?: string } | undefined;
       } catch (e) {
         console.error("Challenge generation failed:", e);
         return undefined;
@@ -101,6 +104,16 @@ const FeedbackScreen = ({ mode, sessionStart, initialTranscript, initialConversa
     return list[Math.floor(Math.random() * list.length)];
   }, [mode, previousChallenges]);
 
+  // Farewell: speak farewell then finish
+  const startFarewell = useCallback(async () => {
+    setPhase("farewell");
+    setCurrentPrompt(FAREWELL_MESSAGE);
+    conversationLogRef.current.push({ role: "challenge", text: FAREWELL_MESSAGE, round: round + 1 });
+    await tts.speak(FAREWELL_MESSAGE);
+    // Auto-finish after farewell
+    onFinish(conversationLogRef.current);
+  }, [round, tts, onFinish]);
+
   // Each round: thinking → speaking (with TTS) → responding
   useEffect(() => {
     let cancelled = false;
@@ -110,10 +123,35 @@ const FeedbackScreen = ({ mode, sessionStart, initialTranscript, initialConversa
 
     const run = async () => {
       const transcript = latestTranscriptRef.current;
-      const challenge = await generateChallenge(transcript);
+      const result = await generateChallenge(transcript);
       if (cancelled) return;
 
-      const prompt = challenge || getFallback();
+      // Handle exit intent
+      if (result?.exitIntent) {
+        if (!exitAssuranceAsked) {
+          // Ask assurance question once
+          setExitAssuranceAsked(true);
+          const assurancePrompt = result.challenge || "I understand you'd like to wrap up. Is there anything you'd like to share before we finish?";
+          setCurrentPrompt(assurancePrompt);
+          setPreviousChallenges((prev) => [...prev, assurancePrompt]);
+          conversationLogRef.current.push({ role: "challenge", text: assurancePrompt, round: round + 1 });
+
+          setPhase("speaking");
+          await tts.speak(assurancePrompt);
+          if (cancelled) return;
+          await new Promise((r) => setTimeout(r, 600));
+          if (cancelled) return;
+          // Let user respond, then next round will trigger farewell
+          setPhase("responding");
+          stt.start();
+        } else {
+          // Already asked assurance — go straight to farewell
+          if (!cancelled) await startFarewell();
+        }
+        return;
+      }
+
+      const prompt = result?.challenge || getFallback();
       setCurrentPrompt(prompt);
       setPreviousChallenges((prev) => [...prev, prompt]);
 
@@ -204,7 +242,7 @@ const FeedbackScreen = ({ mode, sessionStart, initialTranscript, initialConversa
   };
 
   const avatarState =
-    phase === "thinking" ? "thinking" : phase === "speaking" ? "speaking" : "listening";
+    phase === "thinking" ? "thinking" : phase === "speaking" || phase === "farewell" ? "speaking" : "listening";
 
   return (
     <motion.div
@@ -262,9 +300,9 @@ const FeedbackScreen = ({ mode, sessionStart, initialTranscript, initialConversa
       {/* Center: challenge prompt or status */}
       <div className="relative z-10 flex flex-1 items-end justify-center pb-4">
         <AnimatePresence mode="wait">
-          {phase === "speaking" && (
+          {(phase === "speaking" || phase === "farewell") && (
             <motion.div
-              key={`prompt-${round}`}
+              key={`prompt-${round}-${phase}`}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
