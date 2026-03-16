@@ -242,7 +242,7 @@ const FeedbackScreen = ({ mode, sessionStart, initialTranscript, initialConversa
   };
 
   const avatarState =
-    phase === "thinking" ? "thinking" : phase === "speaking" ? "speaking" : "listening";
+    phase === "thinking" ? "thinking" : phase === "speaking" || phase === "farewell" ? "speaking" : "listening";
 
   return (
     <motion.div
