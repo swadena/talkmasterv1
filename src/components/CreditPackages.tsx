@@ -24,16 +24,21 @@ const CreditPackages = ({ onPurchase }: CreditPackagesProps) => {
     setPurchasing(pkg.id);
 
     try {
-      // TODO: Integrate with Stripe for real payment processing.
-      // For now, show a message that payment integration is coming soon.
-      // Once Stripe is integrated, the flow will be:
-      // 1. Create Stripe checkout session
-      // 2. Redirect to Stripe payment page
-      // 3. On success webhook, add credits and mark has_purchased = true
-      toast({
-        title: "Payment coming soon",
-        description: "Credit purchases via payment will be available shortly.",
-      });
+      if (pkg.id === "pro") {
+        // Temporarily grant 30 credits for Pro Pack
+        const { error } = await supabase
+          .from("profiles")
+          .update({ credits: (await supabase.from("profiles").select("credits").eq("id", user.id).single()).data!.credits + 30 })
+          .eq("id", user.id);
+        if (error) throw error;
+        toast({ title: "Credits added!", description: "30 credits have been added to your account." });
+        onPurchase?.();
+      } else {
+        toast({
+          title: "Payment coming soon",
+          description: "Credit purchases via payment will be available shortly.",
+        });
+      }
     } catch (err) {
       toast({
         title: "Purchase failed",
