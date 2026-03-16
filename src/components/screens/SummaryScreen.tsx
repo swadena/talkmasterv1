@@ -216,6 +216,30 @@ const SummaryScreen = ({ mode, conversationLog, onNewSession, onBack, onSessionC
 
           <div className="flex-1" />
 
+          {/* Zero credits CTA */}
+          {!loading && credits <= 0 && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.6, duration: 0.3 }}
+              className="mt-4 rounded-2xl bg-primary/10 p-4 flex items-center gap-3"
+            >
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/20 flex-shrink-0">
+                <Zap className="h-5 w-5 text-primary" />
+              </div>
+              <div className="flex-1">
+                <p className="text-sm font-medium text-foreground">You've run out of credits!</p>
+                <p className="text-[11px] text-muted-foreground mt-0.5">Buy 1 credit for $2 to continue practicing.</p>
+              </div>
+              <button
+                onClick={() => navigate("/dashboard")}
+                className="h-9 px-4 rounded-xl bg-primary text-primary-foreground text-xs font-medium flex-shrink-0 ease-presence transition-transform active:scale-95"
+              >
+                Buy Now
+              </button>
+            </motion.div>
+          )}
+
           {/* Actions - updated buttons */}
           <div className="flex flex-col gap-3 mt-4">
             <button
