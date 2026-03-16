@@ -50,6 +50,31 @@ serve(async (req) => {
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
+    // Detect exit intent in the user's transcript
+    const exitPhrases = [
+      "i want to stop", "i want to finish", "i'm tired", "im tired",
+      "let's stop", "lets stop", "i'm done", "im done", "can we stop",
+      "how do we finish", "i want to end", "let's end", "lets end",
+      "i'd like to stop", "id like to stop", "can we finish",
+      "i don't want to continue", "i dont want to continue",
+      "that's enough", "thats enough", "stop the session",
+      "end the session", "finish the session", "i give up",
+    ];
+    const lowerTranscript = (transcript || "").toLowerCase().trim();
+    const hasExitIntent = exitPhrases.some((p) => lowerTranscript.includes(p));
+
+    if (hasExitIntent) {
+      // Return a soft assurance question once, then farewell
+      return new Response(
+        JSON.stringify({
+          challenge: "I understand you'd like to wrap up. Before we finish, is there anything specific that made you want to stop early?",
+          questionType: "exit_assurance",
+          exitIntent: true,
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     const persona = scenarioPersonas[mode] || scenarioPersonas.debate;
     const guidance = questionGuidance[mode] || questionGuidance.debate;
 
