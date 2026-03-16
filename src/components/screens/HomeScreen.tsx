@@ -83,9 +83,13 @@ const HomeScreen = ({ onStart }: HomeScreenProps) => {
             <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10">
               <mode.icon className="h-5 w-5 text-primary" />
             </div>
-            <div>
+            <div className="flex-1">
               <span className="text-base font-medium text-foreground">{mode.label}</span>
               <p className="text-xs text-muted-foreground">{mode.desc}</p>
+            </div>
+            <div className="flex items-center gap-1 text-muted-foreground/60">
+              <Clock className="h-3 w-3" />
+              <span className="text-[10px] font-medium">15 min</span>
             </div>
           </motion.button>
         ))}

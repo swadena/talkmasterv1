@@ -16,11 +16,12 @@ interface RecordingScreenProps {
   onBack: () => void;
 }
 
-const RecordingScreen = ({ mode, onStop, onBack }: RecordingScreenProps) => {
+const RecordingScreen = ({ mode, sessionStart, onStop, onBack }: RecordingScreenProps) => {
   const [phase, setPhase] = useState<"countdown" | "recording">("countdown");
   const [countdown, setCountdown] = useState(3);
   const [elapsed, setElapsed] = useState(0);
   const [showWarning, setShowWarning] = useState(false);
+  const [sessionElapsed, setSessionElapsed] = useState(0);
   const stt = useSpeechToText();
 
   const remaining = MAX_DURATION - elapsed;
