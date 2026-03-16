@@ -46,7 +46,7 @@ interface FeedbackScreenProps {
 
 type Phase = "thinking" | "speaking" | "responding";
 
-const FeedbackScreen = ({ mode, initialTranscript, initialConversationLog, onFinish, onBack }: FeedbackScreenProps) => {
+const FeedbackScreen = ({ mode, sessionStart, initialTranscript, initialConversationLog, onFinish, onBack }: FeedbackScreenProps) => {
   const [phase, setPhase] = useState<Phase>("thinking");
   const [round, setRound] = useState(0);
   const [currentPrompt, setCurrentPrompt] = useState("");
