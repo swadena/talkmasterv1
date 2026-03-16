@@ -69,15 +69,15 @@ const Index = () => {
         Object.values(assessment.scores).reduce((s, v) => s + (v / 10) * 100, 0) / Object.keys(assessment.scores).length
       );
 
-      await supabase.from("sessions").insert({
+      await supabase.from("sessions").insert([{
         user_id: user.id,
         mode,
-        scores: assessment.scores,
-        feedback: assessment.feedback,
-        tips: assessment.tips,
-        conversation_log: conversationLog,
+        scores: assessment.scores as any,
+        feedback: assessment.feedback as any,
+        tips: assessment.tips as any,
+        conversation_log: conversationLog as any,
         overall_score: overallScore,
-      });
+      }]);
     }
 
     await refreshCredits();
