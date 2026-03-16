@@ -8,10 +8,19 @@ export function useTextToSpeech() {
   const [isSpeaking, setIsSpeaking] = useState(false);
   const cachedVoiceRef = useRef<SpeechSynthesisVoice | null>(null);
 
-  const getVoice = useCallback((): SpeechSynthesisVoice | null => {
-    if (cachedVoiceRef.current) return cachedVoiceRef.current;
-    const voices = window.speechSynthesis.getVoices();
-    // Priority: Google UK English Male > Daniel > any English male > any English
+  // Ensure voices are loaded (they load async in many browsers)
+  useEffect(() => {
+    if (!("speechSynthesis" in window)) return;
+    const loadVoices = () => {
+      const voices = window.speechSynthesis.getVoices();
+      if (voices.length > 0) pickVoice(voices);
+    };
+    loadVoices();
+    window.speechSynthesis.addEventListener("voiceschanged", loadVoices);
+    return () => window.speechSynthesis.removeEventListener("voiceschanged", loadVoices);
+  }, []);
+
+  const pickVoice = (voices: SpeechSynthesisVoice[]) => {
     const pick =
       voices.find((v) => v.name === "Google UK English Male") ||
       voices.find((v) => v.lang.startsWith("en") && v.name.includes("Daniel")) ||
@@ -20,7 +29,13 @@ export function useTextToSpeech() {
       voices.find((v) => v.lang.startsWith("en")) ||
       null;
     if (pick) cachedVoiceRef.current = pick;
-    return pick;
+  };
+
+  const getVoice = useCallback((): SpeechSynthesisVoice | null => {
+    if (cachedVoiceRef.current) return cachedVoiceRef.current;
+    const voices = window.speechSynthesis.getVoices();
+    pickVoice(voices);
+    return cachedVoiceRef.current;
   }, []);
 
   const speak = useCallback(
