@@ -27,7 +27,7 @@ const SKILL_LABELS: Record<string, string> = {
   filler_words: "Filler Words",
 };
 
-type Tab = "progress" | "history" | "credits" | "account";
+type Tab = "progress" | "history" | "credits" | "referrals" | "account";
 
 const Dashboard = () => {
   const navigate = useNavigate();
