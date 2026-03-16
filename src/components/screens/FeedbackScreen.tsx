@@ -355,7 +355,7 @@ const FeedbackScreen = ({ mode, sessionStart, initialTranscript, initialConversa
               >
                 <div className="h-6 w-6 rounded-md bg-record-foreground" />
               </button>
-              <span className="text-xs text-muted-foreground">Tap to respond · 1 min max</span>
+              <span className="text-xs text-muted-foreground">Tap to stop · 1 min max</span>
             </motion.div>
           ) : (
             <motion.div
