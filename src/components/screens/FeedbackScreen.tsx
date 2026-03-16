@@ -300,9 +300,9 @@ const FeedbackScreen = ({ mode, sessionStart, initialTranscript, initialConversa
       {/* Center: challenge prompt or status */}
       <div className="relative z-10 flex flex-1 items-end justify-center pb-4">
         <AnimatePresence mode="wait">
-          {phase === "speaking" && (
+          {(phase === "speaking" || phase === "farewell") && (
             <motion.div
-              key={`prompt-${round}`}
+              key={`prompt-${round}-${phase}`}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
