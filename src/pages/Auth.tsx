@@ -13,7 +13,9 @@ const Auth = () => {
   const [loading, setLoading] = useState(false);
   const [confirmMessage, setConfirmMessage] = useState("");
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { user } = useAuth();
+  const referralCode = searchParams.get("ref") || "";
 
   if (user) {
     navigate("/");
