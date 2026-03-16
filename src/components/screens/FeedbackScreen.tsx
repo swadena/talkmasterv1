@@ -218,12 +218,19 @@ const FeedbackScreen = ({ mode, sessionStart, initialTranscript, initialConversa
 
       {/* Top bar */}
       <div className="relative z-10 flex items-center justify-between px-6 pt-14">
-        <button
-          onClick={handleBack}
-          className="flex h-10 w-10 items-center justify-center rounded-2xl bg-background/20 backdrop-blur-md ease-presence transition-transform active:scale-95"
-        >
-          <ChevronLeft className="h-5 w-5 text-foreground" />
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={handleBack}
+            className="flex h-10 w-10 items-center justify-center rounded-2xl bg-background/20 backdrop-blur-md ease-presence transition-transform active:scale-95"
+          >
+            <ChevronLeft className="h-5 w-5 text-foreground" />
+          </button>
+          <div className="rounded-full px-2.5 py-0.5 bg-background/20 backdrop-blur-md">
+            <span className="tabular-nums text-[10px] font-medium text-foreground/60">
+              Session: {formatTime(sessionElapsed)}
+            </span>
+          </div>
+        </div>
 
         <div className="flex items-center gap-2">
           {round > 0 && (
