@@ -33,8 +33,11 @@ const fallbackPrompts: Record<string, string[]> = {
   ],
 };
 
+const SESSION_MAX = 900; // 15 minutes
+
 interface FeedbackScreenProps {
   mode: PracticeMode;
+  sessionStart: number;
   initialTranscript: string;
   initialConversationLog: ConversationEntry[];
   onFinish: (conversationLog: ConversationEntry[]) => void;

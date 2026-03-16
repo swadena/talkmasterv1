@@ -179,6 +179,15 @@ const RecordingScreen = ({ mode, sessionStart, onStop, onBack }: RecordingScreen
               </motion.span>
             )}
           </AnimatePresence>
+          {phase === "countdown" && (
+            <motion.p
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 0.5 }}
+              className="text-xs text-muted-foreground mt-2"
+            >
+              Each session lasts 15 minutes
+            </motion.p>
+          )}
         </div>
       </div>
 
