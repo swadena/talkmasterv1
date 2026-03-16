@@ -33,8 +33,11 @@ const fallbackPrompts: Record<string, string[]> = {
   ],
 };
 
+const SESSION_MAX = 900; // 15 minutes
+
 interface FeedbackScreenProps {
   mode: PracticeMode;
+  sessionStart: number;
   initialTranscript: string;
   initialConversationLog: ConversationEntry[];
   onFinish: (conversationLog: ConversationEntry[]) => void;
@@ -43,7 +46,7 @@ interface FeedbackScreenProps {
 
 type Phase = "thinking" | "speaking" | "responding";
 
-const FeedbackScreen = ({ mode, initialTranscript, initialConversationLog, onFinish, onBack }: FeedbackScreenProps) => {
+const FeedbackScreen = ({ mode, sessionStart, initialTranscript, initialConversationLog, onFinish, onBack }: FeedbackScreenProps) => {
   const [phase, setPhase] = useState<Phase>("thinking");
   const [round, setRound] = useState(0);
   const [currentPrompt, setCurrentPrompt] = useState("");
@@ -53,8 +56,26 @@ const FeedbackScreen = ({ mode, initialTranscript, initialConversationLog, onFin
   const latestTranscriptRef = useRef(initialTranscript);
   const stt = useSpeechToText();
   const tts = useTextToSpeech();
+  const [sessionElapsed, setSessionElapsed] = useState(0);
 
   const remaining = RESPONSE_MAX - responseTimer;
+
+  // Session timer
+  useEffect(() => {
+    const t = setInterval(() => {
+      setSessionElapsed(Math.floor((Date.now() - sessionStart) / 1000));
+    }, 1000);
+    return () => clearInterval(t);
+  }, [sessionStart]);
+
+  // Auto-finish at session max (15 min)
+  useEffect(() => {
+    if (sessionElapsed >= SESSION_MAX) {
+      tts.cancel();
+      stt.stop();
+      onFinish(conversationLogRef.current);
+    }
+  }, [sessionElapsed]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const generateChallenge = useCallback(
     async (transcript: string) => {
@@ -197,12 +218,19 @@ const FeedbackScreen = ({ mode, initialTranscript, initialConversationLog, onFin
 
       {/* Top bar */}
       <div className="relative z-10 flex items-center justify-between px-6 pt-14">
-        <button
-          onClick={handleBack}
-          className="flex h-10 w-10 items-center justify-center rounded-2xl bg-background/20 backdrop-blur-md ease-presence transition-transform active:scale-95"
-        >
-          <ChevronLeft className="h-5 w-5 text-foreground" />
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={handleBack}
+            className="flex h-10 w-10 items-center justify-center rounded-2xl bg-background/20 backdrop-blur-md ease-presence transition-transform active:scale-95"
+          >
+            <ChevronLeft className="h-5 w-5 text-foreground" />
+          </button>
+          <div className="rounded-full px-2.5 py-0.5 bg-background/20 backdrop-blur-md">
+            <span className="tabular-nums text-[10px] font-medium text-foreground/60">
+              Session: {formatTime(sessionElapsed)}
+            </span>
+          </div>
+        </div>
 
         <div className="flex items-center gap-2">
           {round > 0 && (

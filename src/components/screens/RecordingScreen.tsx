@@ -7,18 +7,21 @@ import type { PracticeMode } from "@/pages/Index";
 
 const MAX_DURATION = 120;
 const WARNING_THRESHOLD = 10;
+const SESSION_MAX = 900; // 15 minutes
 
 interface RecordingScreenProps {
   mode: PracticeMode;
+  sessionStart: number;
   onStop: (transcript: string) => void;
   onBack: () => void;
 }
 
-const RecordingScreen = ({ mode, onStop, onBack }: RecordingScreenProps) => {
+const RecordingScreen = ({ mode, sessionStart, onStop, onBack }: RecordingScreenProps) => {
   const [phase, setPhase] = useState<"countdown" | "recording">("countdown");
   const [countdown, setCountdown] = useState(3);
   const [elapsed, setElapsed] = useState(0);
   const [showWarning, setShowWarning] = useState(false);
+  const [sessionElapsed, setSessionElapsed] = useState(0);
   const stt = useSpeechToText();
 
   const remaining = MAX_DURATION - elapsed;
@@ -41,6 +44,22 @@ const RecordingScreen = ({ mode, onStop, onBack }: RecordingScreenProps) => {
     const t = setInterval(() => setElapsed(e => e + 1), 1000);
     return () => clearInterval(t);
   }, [phase]);
+
+  // Session timer
+  useEffect(() => {
+    const t = setInterval(() => {
+      setSessionElapsed(Math.floor((Date.now() - sessionStart) / 1000));
+    }, 1000);
+    return () => clearInterval(t);
+  }, [sessionStart]);
+
+  // Auto-stop at session max (15 min)
+  useEffect(() => {
+    if (sessionElapsed >= SESSION_MAX && phase === "recording") {
+      stt.stop();
+      onStop(stt.transcript);
+    }
+  }, [sessionElapsed, phase]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Auto-stop at max
   useEffect(() => {
@@ -95,19 +114,28 @@ const RecordingScreen = ({ mode, onStop, onBack }: RecordingScreenProps) => {
           <ChevronLeft className="h-5 w-5 text-foreground" />
         </button>
         <span className="text-sm font-medium text-foreground/80">{modeLabel}</span>
-        {phase === "recording" ? (
-          <div className={`rounded-full px-3 py-1 backdrop-blur-md transition-colors duration-300 ${
-            remaining <= WARNING_THRESHOLD ? "bg-record/30" : "bg-background/20"
-          }`}>
-            <span className={`tabular-nums text-sm font-medium transition-colors duration-300 ${
-              remaining <= WARNING_THRESHOLD ? "text-record" : "text-foreground"
+        <div className="flex items-center gap-2">
+          {phase === "recording" && (
+            <div className="rounded-full px-2.5 py-0.5 bg-background/20 backdrop-blur-md">
+              <span className="tabular-nums text-[10px] font-medium text-foreground/60">
+                Session: {formatTime(sessionElapsed)}
+              </span>
+            </div>
+          )}
+          {phase === "recording" ? (
+            <div className={`rounded-full px-3 py-1 backdrop-blur-md transition-colors duration-300 ${
+              remaining <= WARNING_THRESHOLD ? "bg-record/30" : "bg-background/20"
             }`}>
-              {formatTime(elapsed)}
-            </span>
-          </div>
-        ) : (
-          <div className="w-10" />
-        )}
+              <span className={`tabular-nums text-sm font-medium transition-colors duration-300 ${
+                remaining <= WARNING_THRESHOLD ? "text-record" : "text-foreground"
+              }`}>
+                {formatTime(elapsed)}
+              </span>
+            </div>
+          ) : (
+            <div className="w-10" />
+          )}
+        </div>
       </div>
 
       {/* 10-second warning */}
@@ -151,6 +179,15 @@ const RecordingScreen = ({ mode, onStop, onBack }: RecordingScreenProps) => {
               </motion.span>
             )}
           </AnimatePresence>
+          {phase === "countdown" && (
+            <motion.p
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 0.5 }}
+              className="text-xs text-muted-foreground mt-2"
+            >
+              Each session lasts 15 minutes
+            </motion.p>
+          )}
         </div>
       </div>
 
