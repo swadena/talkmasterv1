@@ -110,6 +110,7 @@ const Index = () => {
             <RecordingScreen
               key="recording"
               mode={mode}
+              sessionStart={sessionStart}
               onStop={handleRecordingStop}
               onBack={() => setScreen("home")}
             />
@@ -118,6 +119,7 @@ const Index = () => {
             <FeedbackScreen
               key="feedback"
               mode={mode}
+              sessionStart={sessionStart}
               initialTranscript={transcript}
               initialConversationLog={conversationLog}
               onFinish={handleFeedbackFinish}
