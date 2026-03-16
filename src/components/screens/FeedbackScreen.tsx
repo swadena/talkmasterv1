@@ -54,6 +54,7 @@ const FeedbackScreen = ({ mode, sessionStart, initialTranscript, initialConversa
   const [currentPrompt, setCurrentPrompt] = useState("");
   const [responseTimer, setResponseTimer] = useState(0);
   const [previousChallenges, setPreviousChallenges] = useState<string[]>([]);
+  const [exitAssuranceAsked, setExitAssuranceAsked] = useState(false);
   const conversationLogRef = useRef<ConversationEntry[]>([...initialConversationLog]);
   const latestTranscriptRef = useRef(initialTranscript);
   const stt = useSpeechToText();
