@@ -1,111 +1,102 @@
 import { useRef, useState, useCallback } from "react";
 
 /**
- * Hook wrapping the browser's SpeechSynthesis API for reading text aloud.
- * Returns a promise from `speak()` that resolves when speech finishes.
+ * Hook that uses ElevenLabs TTS via edge function for natural voice,
+ * with browser SpeechSynthesis as fallback.
  */
 export function useTextToSpeech() {
   const [isSpeaking, setIsSpeaking] = useState(false);
-  const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
-  const selectedVoiceRef = useRef<SpeechSynthesisVoice | null>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const abortRef = useRef<AbortController | null>(null);
 
-  const isSupported =
-    typeof window !== "undefined" && "speechSynthesis" in window;
+  const speakWithElevenLabs = useCallback(
+    async (text: string, signal: AbortSignal): Promise<boolean> => {
+      try {
+        const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/elevenlabs-tts`;
+        const response = await fetch(url, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+          },
+          body: JSON.stringify({ text }),
+          signal,
+        });
 
-  // Select and cache a single male voice once
-  const getVoice = useCallback(() => {
-    if (selectedVoiceRef.current) {
-      return selectedVoiceRef.current;
-    }
+        if (!response.ok) return false;
 
-    const voices = window.speechSynthesis.getVoices();
-    
-    // Priority order: male voices to match avatar
-    const voicePreferences = [
-      "Google UK English Male",
-      "Daniel",
-      "Microsoft David",
-      "Google US English",
-      "Alex",
-      "Fred",
-    ];
-    
-    let preferred = null;
-    for (const name of voicePreferences) {
-      preferred = voices.find((v) => v.name.includes(name) && v.lang.startsWith("en"));
-      if (preferred) break;
-    }
-    
-    // Fallback: any male English voice
-    if (!preferred) {
-      preferred = voices.find(
-        (v) => v.lang.startsWith("en") && (v.name.toLowerCase().includes("male") || v.name.includes("Daniel") || v.name.includes("David"))
-      );
-    }
-    
-    // Final fallback: any English voice
-    if (!preferred) {
-      preferred = voices.find((v) => v.lang.startsWith("en"));
-    }
-    
-    // Cache the selected voice for consistency
-    if (preferred) {
-      selectedVoiceRef.current = preferred;
-      console.log("Selected consistent voice:", preferred.name);
-    }
-    
-    return preferred;
+        const blob = await response.blob();
+        const audioUrl = URL.createObjectURL(blob);
+        const audio = new Audio(audioUrl);
+        audioRef.current = audio;
+
+        return new Promise<boolean>((resolve) => {
+          audio.onended = () => {
+            setIsSpeaking(false);
+            URL.revokeObjectURL(audioUrl);
+            resolve(true);
+          };
+          audio.onerror = () => {
+            setIsSpeaking(false);
+            URL.revokeObjectURL(audioUrl);
+            resolve(false);
+          };
+          setIsSpeaking(true);
+          audio.play().catch(() => resolve(false));
+        });
+      } catch {
+        return false;
+      }
+    },
+    []
+  );
+
+  const speakWithBrowser = useCallback((text: string): Promise<void> => {
+    return new Promise((resolve) => {
+      if (!("speechSynthesis" in window)) { resolve(); return; }
+      window.speechSynthesis.cancel();
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.rate = 0.92;
+      utterance.pitch = 1.05;
+      const voices = window.speechSynthesis.getVoices();
+      const male = voices.find((v) => v.lang.startsWith("en") && v.name.includes("Daniel")) ||
+        voices.find((v) => v.lang.startsWith("en") && v.name.toLowerCase().includes("male")) ||
+        voices.find((v) => v.lang.startsWith("en"));
+      if (male) utterance.voice = male;
+      utterance.onend = () => { setIsSpeaking(false); resolve(); };
+      utterance.onerror = () => { setIsSpeaking(false); resolve(); };
+      setIsSpeaking(true);
+      window.speechSynthesis.speak(utterance);
+    });
   }, []);
 
   const speak = useCallback(
-    (text: string): Promise<void> => {
-      return new Promise((resolve, reject) => {
-        if (!isSupported) {
-          resolve();
-          return;
-        }
+    async (text: string): Promise<void> => {
+      abortRef.current?.abort();
+      const controller = new AbortController();
+      abortRef.current = controller;
 
-        // Cancel any ongoing speech
-        window.speechSynthesis.cancel();
-
-        const utterance = new SpeechSynthesisUtterance(text);
-        utterance.rate = 0.92;
-        utterance.pitch = 1.05;
-        utterance.volume = 1.0;
-
-        // Use the cached voice for consistency
-        const voice = getVoice();
-        if (voice) utterance.voice = voice;
-
-        utterance.onstart = () => setIsSpeaking(true);
-        utterance.onend = () => {
-          setIsSpeaking(false);
-          resolve();
-        };
-        utterance.onerror = (e) => {
-          setIsSpeaking(false);
-          // "interrupted" and "canceled" are not real errors
-          if (e.error === "interrupted" || e.error === "canceled") {
-            resolve();
-          } else {
-            console.warn("TTS error:", e.error);
-            resolve(); // resolve anyway so the flow continues
-          }
-        };
-
-        utteranceRef.current = utterance;
-        window.speechSynthesis.speak(utterance);
-      });
+      // Try ElevenLabs first, fall back to browser TTS
+      const success = await speakWithElevenLabs(text, controller.signal);
+      if (!success && !controller.signal.aborted) {
+        await speakWithBrowser(text);
+      }
     },
-    [isSupported]
+    [speakWithElevenLabs, speakWithBrowser]
   );
 
   const cancel = useCallback(() => {
-    if (isSupported) {
-      window.speechSynthesis.cancel();
-      setIsSpeaking(false);
+    abortRef.current?.abort();
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current = null;
     }
-  }, [isSupported]);
+    if ("speechSynthesis" in window) {
+      window.speechSynthesis.cancel();
+    }
+    setIsSpeaking(false);
+  }, []);
 
-  return { speak, cancel, isSpeaking, isSupported };
+  return { speak, cancel, isSpeaking, isSupported: true };
 }
