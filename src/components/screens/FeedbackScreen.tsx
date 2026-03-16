@@ -88,7 +88,7 @@ const FeedbackScreen = ({ mode, sessionStart, initialTranscript, initialConversa
         });
 
         if (error) throw error;
-        return data?.challenge as string | undefined;
+        return data as { challenge?: string; exitIntent?: boolean; questionType?: string } | undefined;
       } catch (e) {
         console.error("Challenge generation failed:", e);
         return undefined;
