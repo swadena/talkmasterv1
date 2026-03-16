@@ -275,6 +275,12 @@ const Dashboard = () => {
               </motion.div>
             )}
 
+            {activeTab === "referrals" && (
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="mt-6">
+                <ReferralSection />
+              </motion.div>
+            )}
+
             {activeTab === "account" && (
               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="mt-6 flex flex-col gap-4">
                 <div className="rounded-3xl bg-surface p-5 card-depth">
