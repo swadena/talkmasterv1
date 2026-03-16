@@ -1,9 +1,13 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { AnimatePresence } from "framer-motion";
+import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
 import HomeScreen from "@/components/screens/HomeScreen";
 import RecordingScreen from "@/components/screens/RecordingScreen";
 import FeedbackScreen from "@/components/screens/FeedbackScreen";
 import SummaryScreen from "@/components/screens/SummaryScreen";
+import { toast } from "@/hooks/use-toast";
 
 export type AppScreen = "home" | "recording" | "feedback" | "summary";
 export type PracticeMode = "debate" | "interview" | "pitch" | "presentation";
@@ -15,12 +19,27 @@ export interface ConversationEntry {
 }
 
 const Index = () => {
+  const navigate = useNavigate();
+  const { user, credits, deductCredit, refreshCredits } = useAuth();
   const [screen, setScreen] = useState<AppScreen>("home");
   const [mode, setMode] = useState<PracticeMode>("interview");
   const [transcript, setTranscript] = useState("");
   const [conversationLog, setConversationLog] = useState<ConversationEntry[]>([]);
 
-  const handleStart = (selectedMode: PracticeMode) => {
+  const handleStart = async (selectedMode: PracticeMode) => {
+    if (!user) {
+      navigate("/auth");
+      return;
+    }
+    if (credits <= 0) {
+      toast({
+        title: "No credits remaining",
+        description: "Purchase more credits to start a session.",
+        variant: "destructive",
+      });
+      navigate("/dashboard");
+      return;
+    }
     setMode(selectedMode);
     setTranscript("");
     setConversationLog([]);
@@ -29,7 +48,6 @@ const Index = () => {
 
   const handleRecordingStop = (recordedTranscript: string) => {
     setTranscript(recordedTranscript);
-    // Add initial response to conversation log
     setConversationLog([{ role: "user", text: recordedTranscript, round: 0 }]);
     setScreen("feedback");
   };
@@ -37,6 +55,32 @@ const Index = () => {
   const handleFeedbackFinish = (log: ConversationEntry[]) => {
     setConversationLog(log);
     setScreen("summary");
+  };
+
+  const handleSessionComplete = async (assessment: { scores: Record<string, number>; feedback: Record<string, string>; tips: string[] } | null) => {
+    if (!user) return;
+
+    // Deduct credit
+    await deductCredit();
+
+    // Save session to database
+    if (assessment) {
+      const overallScore = Math.round(
+        Object.values(assessment.scores).reduce((s, v) => s + (v / 10) * 100, 0) / Object.keys(assessment.scores).length
+      );
+
+      await supabase.from("sessions").insert({
+        user_id: user.id,
+        mode,
+        scores: assessment.scores,
+        feedback: assessment.feedback,
+        tips: assessment.tips,
+        conversation_log: conversationLog,
+        overall_score: overallScore,
+      });
+    }
+
+    await refreshCredits();
   };
 
   return (
@@ -85,6 +129,7 @@ const Index = () => {
               conversationLog={conversationLog}
               onNewSession={() => setScreen("home")}
               onBack={() => setScreen("feedback")}
+              onSessionComplete={handleSessionComplete}
             />
           )}
         </AnimatePresence>

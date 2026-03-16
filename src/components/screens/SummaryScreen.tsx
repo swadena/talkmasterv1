@@ -1,6 +1,7 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 import { ChevronLeft, CheckCircle2, Loader2 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import type { PracticeMode, ConversationEntry } from "@/pages/Index";
 
@@ -29,6 +30,7 @@ interface SummaryScreenProps {
   conversationLog: ConversationEntry[];
   onNewSession: () => void;
   onBack: () => void;
+  onSessionComplete?: (assessment: Assessment | null) => Promise<void>;
 }
 
 const formatConversationLog = (log: ConversationEntry[]): string => {
@@ -51,10 +53,12 @@ const METRIC_KEYS: { key: keyof Assessment["scores"]; label: string }[] = [
   { key: "filler_words", label: "Filler Words" },
 ];
 
-const SummaryScreen = ({ mode, conversationLog, onNewSession, onBack }: SummaryScreenProps) => {
+const SummaryScreen = ({ mode, conversationLog, onNewSession, onBack, onSessionComplete }: SummaryScreenProps) => {
+  const navigate = useNavigate();
   const [assessment, setAssessment] = useState<Assessment | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const sessionSaved = useRef(false);
 
   useEffect(() => {
     const fetchAssessment = async () => {
@@ -65,10 +69,21 @@ const SummaryScreen = ({ mode, conversationLog, onNewSession, onBack }: SummaryS
         });
 
         if (fnError) throw fnError;
-        setAssessment(data as Assessment);
+        const result = data as Assessment;
+        setAssessment(result);
+
+        // Save session once
+        if (!sessionSaved.current && onSessionComplete) {
+          sessionSaved.current = true;
+          await onSessionComplete(result);
+        }
       } catch (e) {
         console.error("Assessment failed:", e);
         setError("Could not generate assessment. Please try again.");
+        if (!sessionSaved.current && onSessionComplete) {
+          sessionSaved.current = true;
+          await onSessionComplete(null);
+        }
       } finally {
         setLoading(false);
       }
@@ -199,7 +214,7 @@ const SummaryScreen = ({ mode, conversationLog, onNewSession, onBack }: SummaryS
 
           <div className="flex-1" />
 
-          {/* Actions */}
+          {/* Actions - updated buttons */}
           <div className="flex flex-col gap-3 mt-4">
             <button
               onClick={onNewSession}
@@ -208,10 +223,10 @@ const SummaryScreen = ({ mode, conversationLog, onNewSession, onBack }: SummaryS
               Start New Session
             </button>
             <button
-              onClick={onNewSession}
+              onClick={() => navigate("/dashboard")}
               className="h-12 w-full rounded-2xl bg-surface text-foreground text-sm font-medium ease-presence transition-transform active:scale-95"
             >
-              Review Transcript
+              Go to Dashboard
             </button>
           </div>
         </>
