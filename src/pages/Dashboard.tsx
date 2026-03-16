@@ -1,10 +1,11 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { ChevronLeft, LogOut, TrendingUp, BarChart3, Clock, CreditCard, Loader2 } from "lucide-react";
+import { ChevronLeft, LogOut, TrendingUp, BarChart3, Clock, CreditCard, Loader2, Gift } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import CreditPackages from "@/components/CreditPackages";
+import ReferralSection from "@/components/ReferralSection";
 
 interface SessionRecord {
   id: string;
