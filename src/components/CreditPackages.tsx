@@ -5,6 +5,7 @@ import { Loader2, Zap, Lock } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 
 const packages = [
+  { id: "single", name: "Quick Credit", credits: 1, price: 2 },
   { id: "starter", name: "Starter Pack", credits: 10, price: 9 },
   { id: "pro", name: "Pro Pack", credits: 30, price: 19 },
   { id: "power", name: "Power Pack", credits: 100, price: 49 },
