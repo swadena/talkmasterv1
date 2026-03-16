@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { Loader2 } from "lucide-react";
 
@@ -13,7 +13,9 @@ const Auth = () => {
   const [loading, setLoading] = useState(false);
   const [confirmMessage, setConfirmMessage] = useState("");
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { user } = useAuth();
+  const referralCode = searchParams.get("ref") || "";
 
   if (user) {
     navigate("/");
@@ -32,12 +34,21 @@ const Auth = () => {
         if (error) throw error;
         navigate("/");
       } else {
-        const { error } = await supabase.auth.signUp({
+        const { error, data } = await supabase.auth.signUp({
           email,
           password,
-          options: { emailRedirectTo: window.location.origin },
+          options: {
+            emailRedirectTo: window.location.origin,
+            data: referralCode ? { referral_code: referralCode } : undefined,
+          },
         });
         if (error) throw error;
+
+        // If there's a referral code and signup succeeded, store it for post-confirm processing
+        if (referralCode && data.user) {
+          localStorage.setItem("pending_referral", referralCode);
+        }
+
         setConfirmMessage("Check your email to confirm your account, then log in.");
       }
     } catch (err: any) {

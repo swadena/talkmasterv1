@@ -58,14 +58,41 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     setCredits(0);
   };
 
+  const linkReferral = async (userId: string) => {
+    const pendingRef = localStorage.getItem("pending_referral");
+    if (!pendingRef) return;
+    localStorage.removeItem("pending_referral");
+
+    // Look up the referrer by referral_code
+    const { data: referrer } = await supabase
+      .from("profiles")
+      .select("id")
+      .eq("referral_code", pendingRef)
+      .single();
+
+    if (!referrer || referrer.id === userId) return;
+
+    // Set referred_by on the new user's profile
+    await supabase
+      .from("profiles")
+      .update({ referred_by: referrer.id })
+      .eq("id", userId);
+
+    // Create the referral record
+    await supabase.from("referrals").insert([{
+      referrer_id: referrer.id,
+      referred_id: userId,
+    }]);
+  };
+
   useEffect(() => {
-    // IMPORTANT: Do NOT await inside onAuthStateChange — it blocks auth in production
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (_event, session) => {
         const u = session?.user ?? null;
         setUser(u);
         if (u) {
-          fetchCredits(u.id); // fire and forget
+          fetchCredits(u.id);
+          linkReferral(u.id);
         }
         setLoading(false);
       }

@@ -1,10 +1,11 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { ChevronLeft, LogOut, TrendingUp, BarChart3, Clock, CreditCard, Loader2 } from "lucide-react";
+import { ChevronLeft, LogOut, TrendingUp, BarChart3, Clock, CreditCard, Loader2, Gift } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import CreditPackages from "@/components/CreditPackages";
+import ReferralSection from "@/components/ReferralSection";
 
 interface SessionRecord {
   id: string;
@@ -26,7 +27,7 @@ const SKILL_LABELS: Record<string, string> = {
   filler_words: "Filler Words",
 };
 
-type Tab = "progress" | "history" | "credits" | "account";
+type Tab = "progress" | "history" | "credits" | "referrals" | "account";
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -76,6 +77,7 @@ const Dashboard = () => {
     { id: "progress", label: "Progress", icon: TrendingUp },
     { id: "history", label: "History", icon: Clock },
     { id: "credits", label: "Credits", icon: CreditCard },
+    { id: "referrals", label: "Referrals", icon: Gift },
     { id: "account", label: "Account", icon: BarChart3 },
   ];
 
@@ -270,6 +272,12 @@ const Dashboard = () => {
                   <p className="text-xs text-muted-foreground mt-1">Credits remaining</p>
                 </div>
                 <CreditPackages onPurchase={refreshCredits} />
+              </motion.div>
+            )}
+
+            {activeTab === "referrals" && (
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="mt-6">
+                <ReferralSection />
               </motion.div>
             )}
 
