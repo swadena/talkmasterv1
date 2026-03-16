@@ -34,12 +34,21 @@ const Auth = () => {
         if (error) throw error;
         navigate("/");
       } else {
-        const { error } = await supabase.auth.signUp({
+        const { error, data } = await supabase.auth.signUp({
           email,
           password,
-          options: { emailRedirectTo: window.location.origin },
+          options: {
+            emailRedirectTo: window.location.origin,
+            data: referralCode ? { referral_code: referralCode } : undefined,
+          },
         });
         if (error) throw error;
+
+        // If there's a referral code and signup succeeded, store it for post-confirm processing
+        if (referralCode && data.user) {
+          localStorage.setItem("pending_referral", referralCode);
+        }
+
         setConfirmMessage("Check your email to confirm your account, then log in.");
       }
     } catch (err: any) {

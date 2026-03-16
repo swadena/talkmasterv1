@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, Zap } from "lucide-react";
+import { Loader2, Zap, Lock } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 
 const packages = [
@@ -23,27 +23,16 @@ const CreditPackages = ({ onPurchase }: CreditPackagesProps) => {
     setPurchasing(pkg.id);
 
     try {
-      // For now, directly add credits (placeholder for real payment)
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("credits")
-        .eq("id", user.id)
-        .single();
-
-      if (!profile) throw new Error("Profile not found");
-
-      const { error } = await supabase
-        .from("profiles")
-        .update({ credits: profile.credits + pkg.credits })
-        .eq("id", user.id);
-
-      if (error) throw error;
-
+      // TODO: Integrate with Stripe for real payment processing.
+      // For now, show a message that payment integration is coming soon.
+      // Once Stripe is integrated, the flow will be:
+      // 1. Create Stripe checkout session
+      // 2. Redirect to Stripe payment page
+      // 3. On success webhook, add credits and mark has_purchased = true
       toast({
-        title: "Credits added!",
-        description: `${pkg.credits} credits have been added to your account.`,
+        title: "Payment coming soon",
+        description: "Credit purchases via payment will be available shortly.",
       });
-      onPurchase?.();
     } catch (err) {
       toast({
         title: "Purchase failed",
@@ -83,6 +72,10 @@ const CreditPackages = ({ onPurchase }: CreditPackagesProps) => {
           </div>
         </button>
       ))}
+      <p className="text-[10px] text-muted-foreground/60 text-center mt-1">
+        <Lock className="inline h-3 w-3 mr-0.5" />
+        Secure payment processing
+      </p>
     </div>
   );
 };
