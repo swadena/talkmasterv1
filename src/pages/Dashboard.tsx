@@ -77,6 +77,7 @@ const Dashboard = () => {
     { id: "progress", label: "Progress", icon: TrendingUp },
     { id: "history", label: "History", icon: Clock },
     { id: "credits", label: "Credits", icon: CreditCard },
+    { id: "referrals", label: "Referrals", icon: Gift },
     { id: "account", label: "Account", icon: BarChart3 },
   ];
 
