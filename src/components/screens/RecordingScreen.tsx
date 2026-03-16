@@ -122,19 +122,20 @@ const RecordingScreen = ({ mode, sessionStart, onStop, onBack }: RecordingScreen
               </span>
             </div>
           )}
-        {phase === "recording" ? (
-          <div className={`rounded-full px-3 py-1 backdrop-blur-md transition-colors duration-300 ${
-            remaining <= WARNING_THRESHOLD ? "bg-record/30" : "bg-background/20"
-          }`}>
-            <span className={`tabular-nums text-sm font-medium transition-colors duration-300 ${
-              remaining <= WARNING_THRESHOLD ? "text-record" : "text-foreground"
+          {phase === "recording" ? (
+            <div className={`rounded-full px-3 py-1 backdrop-blur-md transition-colors duration-300 ${
+              remaining <= WARNING_THRESHOLD ? "bg-record/30" : "bg-background/20"
             }`}>
-              {formatTime(elapsed)}
-            </span>
-          </div>
-        ) : (
-          <div className="w-10" />
-        )}
+              <span className={`tabular-nums text-sm font-medium transition-colors duration-300 ${
+                remaining <= WARNING_THRESHOLD ? "text-record" : "text-foreground"
+              }`}>
+                {formatTime(elapsed)}
+              </span>
+            </div>
+          ) : (
+            <div className="w-10" />
+          )}
+        </div>
       </div>
 
       {/* 10-second warning */}
