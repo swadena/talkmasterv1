@@ -45,6 +45,22 @@ const RecordingScreen = ({ mode, sessionStart, onStop, onBack }: RecordingScreen
     return () => clearInterval(t);
   }, [phase]);
 
+  // Session timer
+  useEffect(() => {
+    const t = setInterval(() => {
+      setSessionElapsed(Math.floor((Date.now() - sessionStart) / 1000));
+    }, 1000);
+    return () => clearInterval(t);
+  }, [sessionStart]);
+
+  // Auto-stop at session max (15 min)
+  useEffect(() => {
+    if (sessionElapsed >= SESSION_MAX && phase === "recording") {
+      stt.stop();
+      onStop(stt.transcript);
+    }
+  }, [sessionElapsed, phase]); // eslint-disable-line react-hooks/exhaustive-deps
+
   // Auto-stop at max
   useEffect(() => {
     if (phase === "recording" && elapsed >= MAX_DURATION) {
