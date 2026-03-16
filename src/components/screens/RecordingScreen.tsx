@@ -7,9 +7,11 @@ import type { PracticeMode } from "@/pages/Index";
 
 const MAX_DURATION = 120;
 const WARNING_THRESHOLD = 10;
+const SESSION_MAX = 900; // 15 minutes
 
 interface RecordingScreenProps {
   mode: PracticeMode;
+  sessionStart: number;
   onStop: (transcript: string) => void;
   onBack: () => void;
 }
