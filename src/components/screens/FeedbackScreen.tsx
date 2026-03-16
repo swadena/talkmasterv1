@@ -56,8 +56,26 @@ const FeedbackScreen = ({ mode, sessionStart, initialTranscript, initialConversa
   const latestTranscriptRef = useRef(initialTranscript);
   const stt = useSpeechToText();
   const tts = useTextToSpeech();
+  const [sessionElapsed, setSessionElapsed] = useState(0);
 
   const remaining = RESPONSE_MAX - responseTimer;
+
+  // Session timer
+  useEffect(() => {
+    const t = setInterval(() => {
+      setSessionElapsed(Math.floor((Date.now() - sessionStart) / 1000));
+    }, 1000);
+    return () => clearInterval(t);
+  }, [sessionStart]);
+
+  // Auto-finish at session max (15 min)
+  useEffect(() => {
+    if (sessionElapsed >= SESSION_MAX) {
+      tts.cancel();
+      stt.stop();
+      onFinish(conversationLogRef.current);
+    }
+  }, [sessionElapsed]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const generateChallenge = useCallback(
     async (transcript: string) => {
