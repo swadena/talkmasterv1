@@ -127,20 +127,31 @@ const RecordingScreen = ({ mode, onStop, onBack }: RecordingScreenProps) => {
 
       {/* Center countdown */}
       <div className="relative z-10 flex flex-1 items-center justify-center">
-        <AnimatePresence mode="wait">
-          {phase === "countdown" && countdown > 0 && (
-            <motion.span
-              key={countdown}
-              initial={{ scale: 0.5, opacity: 0 }}
-              animate={{ scale: 1, opacity: 0.9 }}
-              exit={{ scale: 1.5, opacity: 0 }}
-              transition={{ duration: 0.4, ease: [0.2, 0, 0, 1] }}
-              className="text-8xl font-light text-foreground/80"
+        <div className="flex flex-col items-center gap-4">
+          {phase === "countdown" && (
+            <motion.p
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 0.7 }}
+              className="text-lg font-medium text-foreground/70"
             >
-              {countdown}
-            </motion.span>
+              Start talking in...
+            </motion.p>
           )}
-        </AnimatePresence>
+          <AnimatePresence mode="wait">
+            {phase === "countdown" && countdown > 0 && (
+              <motion.span
+                key={countdown}
+                initial={{ scale: 0.5, opacity: 0 }}
+                animate={{ scale: 1, opacity: 0.9 }}
+                exit={{ scale: 1.5, opacity: 0 }}
+                transition={{ duration: 0.4, ease: [0.2, 0, 0, 1] }}
+                className="text-8xl font-light text-foreground/80"
+              >
+                {countdown}
+              </motion.span>
+            )}
+          </AnimatePresence>
+        </div>
       </div>
 
       {/* Bottom controls */}

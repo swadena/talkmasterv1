@@ -59,11 +59,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   useEffect(() => {
+    // IMPORTANT: Do NOT await inside onAuthStateChange — it blocks auth in production
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (_event, session) => {
+      (_event, session) => {
         const u = session?.user ?? null;
         setUser(u);
-        if (u) await fetchCredits(u.id);
+        if (u) {
+          fetchCredits(u.id); // fire and forget
+        }
         setLoading(false);
       }
     );
