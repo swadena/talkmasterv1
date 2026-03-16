@@ -104,6 +104,16 @@ const FeedbackScreen = ({ mode, sessionStart, initialTranscript, initialConversa
     return list[Math.floor(Math.random() * list.length)];
   }, [mode, previousChallenges]);
 
+  // Farewell: speak farewell then finish
+  const startFarewell = useCallback(async () => {
+    setPhase("farewell");
+    setCurrentPrompt(FAREWELL_MESSAGE);
+    conversationLogRef.current.push({ role: "challenge", text: FAREWELL_MESSAGE, round: round + 1 });
+    await tts.speak(FAREWELL_MESSAGE);
+    // Auto-finish after farewell
+    onFinish(conversationLogRef.current);
+  }, [round, tts, onFinish]);
+
   // Each round: thinking → speaking (with TTS) → responding
   useEffect(() => {
     let cancelled = false;
@@ -113,10 +123,35 @@ const FeedbackScreen = ({ mode, sessionStart, initialTranscript, initialConversa
 
     const run = async () => {
       const transcript = latestTranscriptRef.current;
-      const challenge = await generateChallenge(transcript);
+      const result = await generateChallenge(transcript);
       if (cancelled) return;
 
-      const prompt = challenge || getFallback();
+      // Handle exit intent
+      if (result?.exitIntent) {
+        if (!exitAssuranceAsked) {
+          // Ask assurance question once
+          setExitAssuranceAsked(true);
+          const assurancePrompt = result.challenge || "I understand you'd like to wrap up. Is there anything you'd like to share before we finish?";
+          setCurrentPrompt(assurancePrompt);
+          setPreviousChallenges((prev) => [...prev, assurancePrompt]);
+          conversationLogRef.current.push({ role: "challenge", text: assurancePrompt, round: round + 1 });
+
+          setPhase("speaking");
+          await tts.speak(assurancePrompt);
+          if (cancelled) return;
+          await new Promise((r) => setTimeout(r, 600));
+          if (cancelled) return;
+          // Let user respond, then next round will trigger farewell
+          setPhase("responding");
+          stt.start();
+        } else {
+          // Already asked assurance — go straight to farewell
+          if (!cancelled) await startFarewell();
+        }
+        return;
+      }
+
+      const prompt = result?.challenge || getFallback();
       setCurrentPrompt(prompt);
       setPreviousChallenges((prev) => [...prev, prompt]);
 
