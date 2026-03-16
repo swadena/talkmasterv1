@@ -56,6 +56,7 @@ const METRIC_KEYS: { key: keyof Assessment["scores"]; label: string }[] = [
 
 const SummaryScreen = ({ mode, conversationLog, onNewSession, onBack, onSessionComplete }: SummaryScreenProps) => {
   const navigate = useNavigate();
+  const { credits } = useAuth();
   const [assessment, setAssessment] = useState<Assessment | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
