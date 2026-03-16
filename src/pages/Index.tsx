@@ -25,6 +25,7 @@ const Index = () => {
   const [mode, setMode] = useState<PracticeMode>("interview");
   const [transcript, setTranscript] = useState("");
   const [conversationLog, setConversationLog] = useState<ConversationEntry[]>([]);
+  const [sessionStart, setSessionStart] = useState<number>(0);
 
   const handleStart = async (selectedMode: PracticeMode) => {
     if (!user) {
