@@ -148,12 +148,13 @@ const Index = () => {
             />
           )}
           {screen === "feedback" && (
-            <FeedbackScreen
+          <FeedbackScreen
               key="feedback"
               mode={mode}
               sessionStart={sessionStart}
               initialTranscript={transcript}
               initialConversationLog={conversationLog}
+              dailyTopic={dailyTopic}
               onFinish={handleFeedbackFinish}
               onBack={() => setScreen("recording")}
             />

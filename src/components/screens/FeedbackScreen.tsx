@@ -91,7 +91,7 @@ const FeedbackScreen = ({ mode, sessionStart, initialTranscript, initialConversa
     async (transcript: string) => {
       try {
       const { data, error } = await supabase.functions.invoke("generate-challenge", {
-          body: { transcript, mode, previousChallenges, roundNumber: round },
+          body: { transcript, mode, previousChallenges, roundNumber: round, dailyTopic },
         });
 
         if (error) throw error;

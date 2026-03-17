@@ -93,6 +93,10 @@ serve(async (req) => {
       ? `\n\nQuestions already asked (do NOT repeat or rephrase these):\n${previousChallenges.map((c: string, i: number) => `${i + 1}. ${c}`).join("\n")}`
       : "";
 
+    const dailyTopicContext = mode === "daily_challenge" && dailyTopic
+      ? `\n\nDAILY CHALLENGE TOPIC: "${dailyTopic}"\nThis is the topic for today's session. All your questions MUST relate to this topic. If the user asks you to repeat the question or topic, restate this exact topic clearly: "${dailyTopic}".`
+      : "";
+
     const systemPrompt = `${persona}
 
 IMPORTANT RULES:
@@ -101,7 +105,7 @@ IMPORTANT RULES:
 - Keep it to 1-2 sentences maximum.
 - This is round ${roundNumber + 1}. This should be a ${questionType} question.
 - ${questionInstruction}
-- Never repeat or closely rephrase a previous question.${previousContext}`;
+- Never repeat or closely rephrase a previous question.${previousContext}${dailyTopicContext}`;
 
     const userMessage = transcript?.trim()
       ? `The user just said:\n\n"${transcript}"\n\nGenerate a ${questionType} follow-up question that directly responds to what they said.`
