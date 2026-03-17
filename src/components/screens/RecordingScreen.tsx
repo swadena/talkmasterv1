@@ -195,9 +195,12 @@ const RecordingScreen = ({ mode, sessionStart, onStop, onBack }: RecordingScreen
       {/* Bottom controls */}
       <div className="relative z-10 flex flex-col items-center gap-4 pb-12">
         {phase === "recording" && (
-          <motion.p initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="text-xs text-foreground/50">
-            Listening...
-          </motion.p>
+          <div className="flex flex-col items-center gap-2">
+            <MicStatusIndicator isListening={stt.isListening} />
+            <motion.p initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="text-xs text-foreground/50">
+              {stt.isListening ? "Listening..." : "Starting mic..."}
+            </motion.p>
+          </div>
         )}
         <button
           onClick={phase === "recording" ? handleStop : undefined}
