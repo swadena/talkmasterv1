@@ -28,7 +28,7 @@ const Index = () => {
   const [conversationLog, setConversationLog] = useState<ConversationEntry[]>([]);
   const [sessionStart, setSessionStart] = useState<number>(0);
 
-  const handleStart = async (selectedMode: PracticeMode) => {
+  const handleStart = (selectedMode: PracticeMode) => {
     if (!user) {
       navigate("/auth");
       return;
@@ -41,31 +41,6 @@ const Index = () => {
       });
       navigate("/dashboard");
       return;
-    }
-
-    // Pre-warm microphone permission from user gesture so later
-    // programmatic SpeechRecognition.start() calls succeed
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      // Release the stream immediately – we just needed the permission grant
-      stream.getTracks().forEach((t) => t.stop());
-    } catch (e) {
-      console.warn("Microphone permission denied:", e);
-      toast({
-        title: "Microphone required",
-        description: "Please allow microphone access to start a session.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    // Unlock browser speechSynthesis from user gesture & pre-load voices
-    if ("speechSynthesis" in window) {
-      window.speechSynthesis.getVoices(); // trigger voice loading
-      const unlock = new SpeechSynthesisUtterance("");
-      unlock.volume = 0;
-      window.speechSynthesis.speak(unlock);
-      window.speechSynthesis.cancel();
     }
 
     setMode(selectedMode);
