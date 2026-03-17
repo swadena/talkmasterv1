@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { MessageSquare, Mic, Lightbulb, Presentation, User, Zap, Clock } from "lucide-react";
+import { MessageSquare, Mic, Lightbulb, Presentation, User, Zap, Clock, Flame } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import type { PracticeMode } from "@/pages/Index";
