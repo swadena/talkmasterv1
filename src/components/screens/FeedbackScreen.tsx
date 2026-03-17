@@ -339,9 +339,8 @@ const FeedbackScreen = ({ mode, sessionStart, initialTranscript, initialConversa
               animate={{ opacity: 1, y: 0 }}
               className="flex flex-col items-center gap-2"
             >
-              <MicStatusIndicator isListening={stt.isListening} />
               <div className="rounded-3xl bg-background/20 px-5 py-2.5 backdrop-blur-xl">
-                <p className="text-xs text-foreground/50">Listening...</p>
+                <p className="text-xs text-foreground/50">Listening…</p>
               </div>
             </motion.div>
           )}
@@ -367,17 +366,7 @@ const FeedbackScreen = ({ mode, sessionStart, initialTranscript, initialConversa
               </button>
               <span className="text-xs text-muted-foreground">Tap to stop · 1 min max</span>
             </motion.div>
-          ) : (
-            <motion.div
-              key="waiting"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="flex h-16 w-16 items-center justify-center rounded-full bg-primary/20"
-            >
-              <div className="h-5 w-5 rounded-full bg-primary animate-pulse-listen" />
-            </motion.div>
-          )}
+          ) : null}
         </AnimatePresence>
 
         {/* Finish Session */}
