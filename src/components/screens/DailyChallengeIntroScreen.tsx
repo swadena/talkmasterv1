@@ -146,7 +146,7 @@ const DailyChallengeIntroScreen = ({ onReady, onBack }: DailyChallengeIntroScree
               className="mt-8 flex flex-col items-center gap-3"
             >
               <p className="text-sm font-medium text-foreground/70">
-                {countdown > 3 ? "Prepare your thoughts..." : "Start talking in..."}
+                Start talking in...
               </p>
               <motion.span
                 key={countdown}
