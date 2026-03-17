@@ -339,9 +339,8 @@ const FeedbackScreen = ({ mode, sessionStart, initialTranscript, initialConversa
               animate={{ opacity: 1, y: 0 }}
               className="flex flex-col items-center gap-2"
             >
-              <MicStatusIndicator isListening={stt.isListening} />
               <div className="rounded-3xl bg-background/20 px-5 py-2.5 backdrop-blur-xl">
-                <p className="text-xs text-foreground/50">Listening...</p>
+                <p className="text-xs text-foreground/50">Listening…</p>
               </div>
             </motion.div>
           )}
