@@ -71,8 +71,7 @@ const Index = () => {
     setMode(selectedMode);
     setTranscript("");
     setConversationLog([]);
-    setSessionStart(Date.now());
-    setScreen("recording");
+    setScreen("setup");
   };
 
   const handleRecordingStop = (recordedTranscript: string) => {
