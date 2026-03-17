@@ -4,14 +4,13 @@ import { AnimatePresence } from "framer-motion";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import HomeScreen from "@/components/screens/HomeScreen";
-import SessionSetupScreen from "@/components/screens/SessionSetupScreen";
 import DailyChallengeIntroScreen from "@/components/screens/DailyChallengeIntroScreen";
 import RecordingScreen from "@/components/screens/RecordingScreen";
 import FeedbackScreen from "@/components/screens/FeedbackScreen";
 import SummaryScreen from "@/components/screens/SummaryScreen";
 import { toast } from "@/hooks/use-toast";
 
-export type AppScreen = "home" | "setup" | "daily_intro" | "recording" | "feedback" | "summary";
+export type AppScreen = "home" | "daily_intro" | "recording" | "feedback" | "summary";
 export type PracticeMode = "debate" | "interview" | "pitch" | "presentation" | "daily_challenge";
 
 export interface ConversationEntry {
@@ -53,7 +52,8 @@ const Index = () => {
     if (selectedMode === "daily_challenge") {
       setScreen("daily_intro");
     } else {
-      setScreen("setup");
+      setSessionStart(Date.now());
+      setScreen("recording");
     }
   };
 
@@ -114,17 +114,6 @@ const Index = () => {
         <AnimatePresence mode="wait">
           {screen === "home" && (
             <HomeScreen key="home" onStart={handleStart} />
-          )}
-          {screen === "setup" && (
-            <SessionSetupScreen
-              key="setup"
-              mode={mode}
-              onReady={() => {
-                setSessionStart(Date.now());
-                setScreen("recording");
-              }}
-              onBack={() => setScreen("home")}
-            />
           )}
           {screen === "daily_intro" && (
             <DailyChallengeIntroScreen
