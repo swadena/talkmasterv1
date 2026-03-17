@@ -48,7 +48,13 @@ const Index = () => {
     setMode(selectedMode);
     setTranscript("");
     setConversationLog([]);
-    setScreen("setup");
+    setDailyTopic("");
+
+    if (selectedMode === "daily_challenge") {
+      setScreen("daily_intro");
+    } else {
+      setScreen("setup");
+    }
   };
 
   const handleRecordingStop = (recordedTranscript: string) => {
