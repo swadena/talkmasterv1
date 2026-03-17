@@ -10,7 +10,7 @@ import FeedbackScreen from "@/components/screens/FeedbackScreen";
 import SummaryScreen from "@/components/screens/SummaryScreen";
 import { toast } from "@/hooks/use-toast";
 
-export type AppScreen = "home" | "recording" | "feedback" | "summary";
+export type AppScreen = "home" | "setup" | "recording" | "feedback" | "summary";
 export type PracticeMode = "debate" | "interview" | "pitch" | "presentation";
 
 export interface ConversationEntry {
