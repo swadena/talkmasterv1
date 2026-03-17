@@ -42,6 +42,7 @@ const fallbackPrompts: Record<string, string> = {
   interview: "Tell me about a time you faced a significant challenge at work. How did you handle it?",
   pitch: "In one sentence, why should someone invest in this idea?",
   presentation: "What's the one thing you want your audience to remember from this?",
+  daily_challenge: "What's your initial take on this topic? Share your first thoughts.",
 };
 
 serve(async (req) => {
