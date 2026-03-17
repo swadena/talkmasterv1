@@ -46,6 +46,7 @@ interface FeedbackScreenProps {
   sessionStart: number;
   initialTranscript: string;
   initialConversationLog: ConversationEntry[];
+  dailyTopic?: string;
   onFinish: (conversationLog: ConversationEntry[]) => void;
   onBack: () => void;
 }
