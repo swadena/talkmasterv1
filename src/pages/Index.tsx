@@ -4,12 +4,13 @@ import { AnimatePresence } from "framer-motion";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import HomeScreen from "@/components/screens/HomeScreen";
+import SessionSetupScreen from "@/components/screens/SessionSetupScreen";
 import RecordingScreen from "@/components/screens/RecordingScreen";
 import FeedbackScreen from "@/components/screens/FeedbackScreen";
 import SummaryScreen from "@/components/screens/SummaryScreen";
 import { toast } from "@/hooks/use-toast";
 
-export type AppScreen = "home" | "recording" | "feedback" | "summary";
+export type AppScreen = "home" | "setup" | "recording" | "feedback" | "summary";
 export type PracticeMode = "debate" | "interview" | "pitch" | "presentation";
 
 export interface ConversationEntry {
@@ -27,7 +28,7 @@ const Index = () => {
   const [conversationLog, setConversationLog] = useState<ConversationEntry[]>([]);
   const [sessionStart, setSessionStart] = useState<number>(0);
 
-  const handleStart = async (selectedMode: PracticeMode) => {
+  const handleStart = (selectedMode: PracticeMode) => {
     if (!user) {
       navigate("/auth");
       return;
@@ -42,36 +43,10 @@ const Index = () => {
       return;
     }
 
-    // Pre-warm microphone permission from user gesture so later
-    // programmatic SpeechRecognition.start() calls succeed
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      // Release the stream immediately – we just needed the permission grant
-      stream.getTracks().forEach((t) => t.stop());
-    } catch (e) {
-      console.warn("Microphone permission denied:", e);
-      toast({
-        title: "Microphone required",
-        description: "Please allow microphone access to start a session.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    // Unlock browser speechSynthesis from user gesture & pre-load voices
-    if ("speechSynthesis" in window) {
-      window.speechSynthesis.getVoices(); // trigger voice loading
-      const unlock = new SpeechSynthesisUtterance("");
-      unlock.volume = 0;
-      window.speechSynthesis.speak(unlock);
-      window.speechSynthesis.cancel();
-    }
-
     setMode(selectedMode);
     setTranscript("");
     setConversationLog([]);
-    setSessionStart(Date.now());
-    setScreen("recording");
+    setScreen("setup");
   };
 
   const handleRecordingStop = (recordedTranscript: string) => {
@@ -131,6 +106,17 @@ const Index = () => {
         <AnimatePresence mode="wait">
           {screen === "home" && (
             <HomeScreen key="home" onStart={handleStart} />
+          )}
+          {screen === "setup" && (
+            <SessionSetupScreen
+              key="setup"
+              mode={mode}
+              onReady={() => {
+                setSessionStart(Date.now());
+                setScreen("recording");
+              }}
+              onBack={() => setScreen("home")}
+            />
           )}
           {screen === "recording" && (
             <RecordingScreen
