@@ -43,7 +43,7 @@ type Phase = "speaking" | "countdown";
 
 const DailyChallengeIntroScreen = ({ onReady, onBack }: DailyChallengeIntroScreenProps) => {
   const [phase, setPhase] = useState<Phase>("speaking");
-  const [countdown, setCountdown] = useState(15);
+  const [countdown, setCountdown] = useState(3);
   const [topic] = useState(() => getDailyTopic());
   const tts = useTextToSpeech();
 
