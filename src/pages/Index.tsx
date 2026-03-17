@@ -142,6 +142,7 @@ const Index = () => {
               key="recording"
               mode={mode}
               sessionStart={sessionStart}
+              skipCountdown={mode === "daily_challenge"}
               onStop={handleRecordingStop}
               onBack={() => setScreen("home")}
             />
