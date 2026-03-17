@@ -21,12 +21,15 @@ export function useTextToSpeech() {
   }, []);
 
   const pickVoice = (voices: SpeechSynthesisVoice[]) => {
+    // Strictly enforce a consistent male voice — never allow female voices
+    const femalePattern = /\b(female|woman|girl|zira|hazel|susan|linda|samantha|karen|moira|fiona|tessa|alice|amelie|anna|carmit|damayanti|ioana|joana|kanya|kyoko|lana|laura|lekha|luciana|mariska|mei-jia|melina|milena|monica|nora|paulina|sara|satu|sin-ji|ting-ting|yelda|yuna)\b/i;
+    const malePattern = /\b(male|man|daniel|james|thomas|google uk english male|aaron|alex|arthur|fred|lee|oliver|rishi|jorge|diego|luca|jacques)\b/i;
+
     const pick =
       voices.find((v) => v.name === "Google UK English Male") ||
       voices.find((v) => v.lang.startsWith("en") && v.name.includes("Daniel")) ||
-      voices.find((v) => v.lang.startsWith("en") && /\bmale\b/i.test(v.name)) ||
-      voices.find((v) => v.lang.startsWith("en") && !/\bfemale\b/i.test(v.name)) ||
-      voices.find((v) => v.lang.startsWith("en")) ||
+      voices.find((v) => v.lang.startsWith("en") && malePattern.test(v.name)) ||
+      voices.find((v) => v.lang.startsWith("en") && !femalePattern.test(v.name)) ||
       null;
     if (pick) cachedVoiceRef.current = pick;
   };
