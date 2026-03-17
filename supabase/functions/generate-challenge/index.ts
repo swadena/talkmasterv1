@@ -31,6 +31,10 @@ const questionGuidance: Record<string, { light: string; deep: string }> = {
     light: "Ask about clarity or a specific point. E.g. 'Could you elaborate on that point?', 'What do you mean by...?', 'How does that connect to your main point?'",
     deep: "Challenge the structure, evidence, or main takeaway. E.g. 'What data supports that conclusion?', 'How would you explain this to someone unfamiliar?', 'What's the strongest counterargument?'",
   },
+  daily_challenge: {
+    light: "Ask a clarifying follow-up about their reasoning or perspective. E.g. 'What makes you say that?', 'Can you give an example?', 'How does that relate to the topic?'",
+    deep: "Challenge their assumptions, ask for counterarguments, or push them to think deeper. E.g. 'What would someone who disagrees say?', 'What evidence supports that?', 'Are there any downsides to that view?'",
+  },
 };
 
 const fallbackPrompts: Record<string, string> = {
