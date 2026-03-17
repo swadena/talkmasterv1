@@ -28,6 +28,7 @@ const Index = () => {
   const [transcript, setTranscript] = useState("");
   const [conversationLog, setConversationLog] = useState<ConversationEntry[]>([]);
   const [sessionStart, setSessionStart] = useState<number>(0);
+  const [dailyTopic, setDailyTopic] = useState<string>("");
 
   const handleStart = (selectedMode: PracticeMode) => {
     if (!user) {
