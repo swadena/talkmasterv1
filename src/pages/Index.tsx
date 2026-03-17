@@ -52,7 +52,8 @@ const Index = () => {
     if (selectedMode === "daily_challenge") {
       setScreen("daily_intro");
     } else {
-      setScreen("setup");
+      setSessionStart(Date.now());
+      setScreen("recording");
     }
   };
 
