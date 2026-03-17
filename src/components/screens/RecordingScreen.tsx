@@ -28,6 +28,13 @@ const RecordingScreen = ({ mode, sessionStart, skipCountdown, onStop, onBack }: 
 
   const remaining = MAX_DURATION - elapsed;
 
+  // Start STT immediately if skipping countdown
+  useEffect(() => {
+    if (skipCountdown) {
+      stt.start();
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
   // Countdown
   useEffect(() => {
     if (phase !== "countdown") return;
