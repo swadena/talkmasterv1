@@ -55,7 +55,7 @@ type Phase = "thinking" | "speaking" | "responding" | "farewell";
 
 const FAREWELL_MESSAGE = "Thanks for practicing today! See you next time. You can also finish early anytime by pressing the Finish Session button.";
 
-const FeedbackScreen = ({ mode, sessionStart, initialTranscript, initialConversationLog, onFinish, onBack }: FeedbackScreenProps) => {
+const FeedbackScreen = ({ mode, sessionStart, initialTranscript, initialConversationLog, dailyTopic, onFinish, onBack }: FeedbackScreenProps) => {
   const [phase, setPhase] = useState<Phase>("thinking");
   const [round, setRound] = useState(0);
   const [currentPrompt, setCurrentPrompt] = useState("");
