@@ -28,10 +28,21 @@ const DAILY_TOPICS = [
 ];
 
 function getDailyTopic(): string {
-  // Use date as seed so the topic stays the same all day
+  // Use date as seed so the topic stays the same all day for all users
   const today = new Date();
   const seed = today.getFullYear() * 10000 + (today.getMonth() + 1) * 100 + today.getDate();
-  return DAILY_TOPICS[seed % DAILY_TOPICS.length];
+  let index = seed % DAILY_TOPICS.length;
+
+  // Ensure today's topic differs from yesterday's
+  const yesterday = new Date(today);
+  yesterday.setDate(yesterday.getDate() - 1);
+  const yesterdaySeed = yesterday.getFullYear() * 10000 + (yesterday.getMonth() + 1) * 100 + yesterday.getDate();
+  const yesterdayIndex = yesterdaySeed % DAILY_TOPICS.length;
+  if (index === yesterdayIndex) {
+    index = (index + 1) % DAILY_TOPICS.length;
+  }
+
+  return DAILY_TOPICS[index];
 }
 
 interface DailyChallengeIntroScreenProps {
