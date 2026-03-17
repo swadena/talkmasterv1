@@ -4,6 +4,7 @@ import { AnimatePresence } from "framer-motion";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import HomeScreen from "@/components/screens/HomeScreen";
+import SessionSetupScreen from "@/components/screens/SessionSetupScreen";
 import RecordingScreen from "@/components/screens/RecordingScreen";
 import FeedbackScreen from "@/components/screens/FeedbackScreen";
 import SummaryScreen from "@/components/screens/SummaryScreen";
