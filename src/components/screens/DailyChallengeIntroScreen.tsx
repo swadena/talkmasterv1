@@ -160,6 +160,9 @@ const DailyChallengeIntroScreen = ({ onReady, onBack }: DailyChallengeIntroScree
               >
                 {countdown}
               </motion.span>
+              <p className="mt-2 text-xs text-muted-foreground">
+                Each session lasts 15 minutes
+              </p>
             </motion.div>
           )}
           {phase === "speaking" && (

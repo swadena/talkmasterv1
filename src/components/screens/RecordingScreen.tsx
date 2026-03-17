@@ -13,12 +13,13 @@ const SESSION_MAX = 900; // 15 minutes
 interface RecordingScreenProps {
   mode: PracticeMode;
   sessionStart: number;
+  skipCountdown?: boolean;
   onStop: (transcript: string) => void;
   onBack: () => void;
 }
 
-const RecordingScreen = ({ mode, sessionStart, onStop, onBack }: RecordingScreenProps) => {
-  const [phase, setPhase] = useState<"countdown" | "recording">("countdown");
+const RecordingScreen = ({ mode, sessionStart, skipCountdown, onStop, onBack }: RecordingScreenProps) => {
+  const [phase, setPhase] = useState<"countdown" | "recording">(skipCountdown ? "recording" : "countdown");
   const [countdown, setCountdown] = useState(3);
   const [elapsed, setElapsed] = useState(0);
   const [showWarning, setShowWarning] = useState(false);
