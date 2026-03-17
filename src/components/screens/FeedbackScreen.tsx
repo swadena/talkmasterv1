@@ -32,6 +32,11 @@ const fallbackPrompts: Record<string, string[]> = {
     "How does this connect to the bigger picture?",
     "Could you be more precise about that?",
   ],
+  daily_challenge: [
+    "What's your initial take on this topic?",
+    "Can you give a real-world example to support your point?",
+    "What would someone who disagrees with you say?",
+  ],
 };
 
 const SESSION_MAX = 900; // 15 minutes

@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { MessageSquare, Mic, Lightbulb, Presentation, User, Zap, Clock } from "lucide-react";
+import { MessageSquare, Mic, Lightbulb, Presentation, User, Zap, Clock, Flame } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import type { PracticeMode } from "@/pages/Index";
@@ -93,6 +93,28 @@ const HomeScreen = ({ onStart }: HomeScreenProps) => {
             </div>
           </motion.button>
         ))}
+
+        {/* Daily Challenge — separated */}
+        <div className="mt-2" />
+        <motion.button
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 + modes.length * 0.06, duration: 0.3, ease: [0.2, 0, 0, 1] }}
+          onClick={() => onStart("daily_challenge")}
+          className="card-depth flex items-center gap-4 rounded-3xl bg-surface p-4 text-left ease-presence transition-transform duration-250 active:scale-[0.97] will-change-transform border border-primary/20"
+        >
+          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/20">
+            <Flame className="h-5 w-5 text-primary" />
+          </div>
+          <div className="flex-1">
+            <span className="text-base font-medium text-foreground">Daily Challenge</span>
+            <p className="text-xs text-muted-foreground">Impromptu speaking practice</p>
+          </div>
+          <div className="flex items-center gap-1 text-muted-foreground/60">
+            <Clock className="h-3 w-3" />
+            <span className="text-[10px] font-medium">15 min</span>
+          </div>
+        </motion.button>
       </div>
 
       {/* Bottom */}

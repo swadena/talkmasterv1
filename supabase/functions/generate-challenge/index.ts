@@ -11,6 +11,7 @@ const scenarioPersonas: Record<string, string> = {
   interview: `You are a friendly, experienced interviewer conducting a realistic job interview. You respond naturally, like a real hiring manager — curious, empathetic, but probing. You want to understand the person, not interrogate them.`,
   pitch: `You are a thoughtful investor in a casual pitch meeting. You're genuinely interested but naturally skeptical. Your questions feel like a real conversation over coffee, not a formal Q&A.`,
   presentation: `You are an engaged audience member at a presentation. You ask questions because you're genuinely curious and want to understand better — not to trip up the speaker.`,
+  daily_challenge: `You are an encouraging impromptu speaking coach. The user was given a random topic and is practicing thinking on their feet. You challenge their reasoning while being supportive of their effort to speak spontaneously.`,
 };
 
 const questionGuidance: Record<string, { light: string; deep: string }> = {
@@ -30,6 +31,10 @@ const questionGuidance: Record<string, { light: string; deep: string }> = {
     light: "Ask about clarity or a specific point. E.g. 'Could you elaborate on that point?', 'What do you mean by...?', 'How does that connect to your main point?'",
     deep: "Challenge the structure, evidence, or main takeaway. E.g. 'What data supports that conclusion?', 'How would you explain this to someone unfamiliar?', 'What's the strongest counterargument?'",
   },
+  daily_challenge: {
+    light: "Ask a clarifying follow-up about their reasoning or perspective. E.g. 'What makes you say that?', 'Can you give an example?', 'How does that relate to the topic?'",
+    deep: "Challenge their assumptions, ask for counterarguments, or push them to think deeper. E.g. 'What would someone who disagrees say?', 'What evidence supports that?', 'Are there any downsides to that view?'",
+  },
 };
 
 const fallbackPrompts: Record<string, string> = {
@@ -37,6 +42,7 @@ const fallbackPrompts: Record<string, string> = {
   interview: "Tell me about a time you faced a significant challenge at work. How did you handle it?",
   pitch: "In one sentence, why should someone invest in this idea?",
   presentation: "What's the one thing you want your audience to remember from this?",
+  daily_challenge: "What's your initial take on this topic? Share your first thoughts.",
 };
 
 serve(async (req) => {
