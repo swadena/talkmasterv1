@@ -51,7 +51,7 @@ serve(async (req) => {
   }
 
   try {
-    const { transcript, mode, previousChallenges, roundNumber } = await req.json();
+    const { transcript, mode, previousChallenges, roundNumber, dailyTopic } = await req.json();
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
@@ -93,6 +93,10 @@ serve(async (req) => {
       ? `\n\nQuestions already asked (do NOT repeat or rephrase these):\n${previousChallenges.map((c: string, i: number) => `${i + 1}. ${c}`).join("\n")}`
       : "";
 
+    const dailyTopicContext = mode === "daily_challenge" && dailyTopic
+      ? `\n\nDAILY CHALLENGE TOPIC: "${dailyTopic}"\nThis is the topic for today's session. All your questions MUST relate to this topic. If the user asks you to repeat the question or topic, restate this exact topic clearly: "${dailyTopic}".`
+      : "";
+
     const systemPrompt = `${persona}
 
 IMPORTANT RULES:
@@ -101,7 +105,27 @@ IMPORTANT RULES:
 - Keep it to 1-2 sentences maximum.
 - This is round ${roundNumber + 1}. This should be a ${questionType} question.
 - ${questionInstruction}
-- Never repeat or closely rephrase a previous question.${previousContext}`;
+- Never repeat or closely rephrase a previous question.${previousContext}${dailyTopicContext}`;
+
+    // Detect repeat/restate requests for daily challenge
+    const repeatPhrases = [
+      "repeat the question", "repeat the topic", "what was the question",
+      "what was the topic", "say that again", "can you repeat", "what's the topic",
+      "whats the topic", "what is the topic", "what is the question",
+      "remind me", "tell me the topic again", "tell me the question again",
+    ];
+    const isRepeatRequest = mode === "daily_challenge" && dailyTopic &&
+      repeatPhrases.some((p) => lowerTranscript.includes(p));
+
+    if (isRepeatRequest) {
+      return new Response(
+        JSON.stringify({
+          challenge: `Sure! Your topic is: ${dailyTopic}. What are your thoughts on this?`,
+          questionType: "repeat",
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
 
     const userMessage = transcript?.trim()
       ? `The user just said:\n\n"${transcript}"\n\nGenerate a ${questionType} follow-up question that directly responds to what they said.`
