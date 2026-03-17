@@ -107,6 +107,26 @@ IMPORTANT RULES:
 - ${questionInstruction}
 - Never repeat or closely rephrase a previous question.${previousContext}${dailyTopicContext}`;
 
+    // Detect repeat/restate requests for daily challenge
+    const repeatPhrases = [
+      "repeat the question", "repeat the topic", "what was the question",
+      "what was the topic", "say that again", "can you repeat", "what's the topic",
+      "whats the topic", "what is the topic", "what is the question",
+      "remind me", "tell me the topic again", "tell me the question again",
+    ];
+    const isRepeatRequest = mode === "daily_challenge" && dailyTopic &&
+      repeatPhrases.some((p) => lowerTranscript.includes(p));
+
+    if (isRepeatRequest) {
+      return new Response(
+        JSON.stringify({
+          challenge: `Sure! Your topic is: ${dailyTopic}. What are your thoughts on this?`,
+          questionType: "repeat",
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     const userMessage = transcript?.trim()
       ? `The user just said:\n\n"${transcript}"\n\nGenerate a ${questionType} follow-up question that directly responds to what they said.`
       : `The user hasn't said anything clear yet. Ask a natural opening question for a ${mode} session. Use this as a starting point: "${fallbackPrompts[mode]}" — but rephrase it naturally.`;
