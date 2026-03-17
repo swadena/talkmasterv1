@@ -115,17 +115,6 @@ const Index = () => {
           {screen === "home" && (
             <HomeScreen key="home" onStart={handleStart} />
           )}
-          {screen === "setup" && (
-            <SessionSetupScreen
-              key="setup"
-              mode={mode}
-              onReady={() => {
-                setSessionStart(Date.now());
-                setScreen("recording");
-              }}
-              onBack={() => setScreen("home")}
-            />
-          )}
           {screen === "daily_intro" && (
             <DailyChallengeIntroScreen
               key="daily_intro"
