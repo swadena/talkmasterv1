@@ -299,6 +299,7 @@ const FeedbackScreen = ({ mode, sessionStart, initialTranscript, initialConversa
       round: round + 1,
     });
 
+    setPhase("thinking");
     setRound((r) => r + 1);
   };
 
