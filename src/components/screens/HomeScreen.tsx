@@ -20,6 +20,24 @@ interface HomeScreenProps {
 const HomeScreen = ({ onStart }: HomeScreenProps) => {
   const navigate = useNavigate();
   const { user, credits, daysUntilExpiry } = useAuth();
+  const bonusShownRef = useRef(false);
+
+  // Show bonus credits popup for users who got bonus (credits > 3 on first visit)
+  useEffect(() => {
+    if (!user || bonusShownRef.current) return;
+    const bonusShown = localStorage.getItem(`bonus_shown_${user.id}`);
+    if (bonusShown) return;
+    if (credits === 13) {
+      bonusShownRef.current = true;
+      localStorage.setItem(`bonus_shown_${user.id}`, "true");
+      setTimeout(() => {
+        toast({
+          title: "🎉 You got 10 bonus credits!",
+          description: "Your total credits are now 13.",
+        });
+      }, 500);
+    }
+  }, [user, credits]);
 
   const showExpiryBanner = user && credits > 0 && daysUntilExpiry !== null && daysUntilExpiry <= 5;
 
