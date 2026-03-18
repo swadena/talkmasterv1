@@ -31,7 +31,7 @@ type Tab = "progress" | "history" | "credits" | "referrals" | "account";
 
 const Dashboard = () => {
   const navigate = useNavigate();
-  const { user, credits, signOut, refreshCredits } = useAuth();
+  const { user, credits, signOut, refreshCredits, daysUntilExpiry } = useAuth();
   const [sessions, setSessions] = useState<SessionRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<Tab>("progress");
