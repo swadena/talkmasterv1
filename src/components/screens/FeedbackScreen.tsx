@@ -51,7 +51,7 @@ interface FeedbackScreenProps {
   onBack: () => void;
 }
 
-type Phase = "thinking" | "speaking" | "responding" | "farewell";
+type Phase = "thinking" | "speaking" | "responding" | "farewell" | "fallback";
 
 const FAREWELL_MESSAGE = "Thanks for practicing today! See you next time. You can also finish early anytime by pressing the Finish Session button.";
 
