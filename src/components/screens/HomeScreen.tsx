@@ -17,7 +17,9 @@ interface HomeScreenProps {
 
 const HomeScreen = ({ onStart }: HomeScreenProps) => {
   const navigate = useNavigate();
-  const { user, credits } = useAuth();
+  const { user, credits, daysUntilExpiry } = useAuth();
+
+  const showExpiryBanner = user && credits > 0 && daysUntilExpiry !== null && daysUntilExpiry <= 5;
 
   return (
     <motion.div
