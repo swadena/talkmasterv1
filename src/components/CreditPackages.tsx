@@ -26,9 +26,18 @@ const CreditPackages = ({ onPurchase }: CreditPackagesProps) => {
     try {
       if (pkg.id === "pro") {
         // Temporarily grant 30 credits for Pro Pack
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("credits")
+          .eq("id", user.id)
+          .single();
+        const newExpiry = new Date(Date.now() + 60 * 24 * 60 * 60 * 1000).toISOString();
         const { error } = await supabase
           .from("profiles")
-          .update({ credits: (await supabase.from("profiles").select("credits").eq("id", user.id).single()).data!.credits + 30 })
+          .update({
+            credits: (profile?.credits ?? 0) + 30,
+            credits_expire_at: newExpiry,
+          })
           .eq("id", user.id);
         if (error) throw error;
         toast({ title: "Credits added!", description: "30 credits have been added to your account." });
@@ -81,6 +90,9 @@ const CreditPackages = ({ onPurchase }: CreditPackagesProps) => {
       <p className="text-[10px] text-muted-foreground/60 text-center mt-1">
         <Lock className="inline h-3 w-3 mr-0.5" />
         Secure payment processing
+      </p>
+      <p className="text-[10px] text-muted-foreground/50 text-center mt-1">
+        All credits valid for 60 days · Top up anytime to extend your credits
       </p>
     </div>
   );
