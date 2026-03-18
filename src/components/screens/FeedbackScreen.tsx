@@ -73,13 +73,46 @@ const FeedbackScreen = ({ mode, sessionStart, initialTranscript, initialConversa
 
   const remaining = RESPONSE_MAX - responseTimer;
 
-  // Session timer
+  // Session timer — pauses during thinking/fallback phases
   useEffect(() => {
+    if (phase === "thinking" || phase === "fallback") return;
     const t = setInterval(() => {
-      setSessionElapsed(Math.floor((Date.now() - sessionStart) / 1000));
+      setSessionElapsed(Math.floor((Date.now() - sessionStart - pausedTimeRef.current) / 1000));
     }, 1000);
     return () => clearInterval(t);
-  }, [sessionStart]);
+  }, [sessionStart, phase]);
+
+  // Track thinking elapsed time for staged UI
+  useEffect(() => {
+    if (phase === "thinking") {
+      thinkingStartRef.current = Date.now();
+      setThinkingElapsed(0);
+      const t = setInterval(() => {
+        setThinkingElapsed(Math.floor((Date.now() - thinkingStartRef.current) / 1000));
+      }, 500);
+      return () => clearInterval(t);
+    } else if (phase === "fallback") {
+      // don't reset
+    } else {
+      // Accumulate paused time when leaving thinking/fallback
+      if (thinkingStartRef.current > 0) {
+        pausedTimeRef.current += Date.now() - thinkingStartRef.current;
+        thinkingStartRef.current = 0;
+      }
+    }
+  }, [phase]);
+
+  // Auto-fallback after 5 seconds of thinking
+  useEffect(() => {
+    if (phase === "thinking" && thinkingElapsed >= 5) {
+      setPhase("fallback");
+    }
+  }, [phase, thinkingElapsed]);
+
+  const thinkingLabel = useMemo(() => {
+    if (thinkingElapsed >= 2) return "Almost ready...";
+    return "Considering your response...";
+  }, [thinkingElapsed]);
 
   // Auto-finish at session max (15 min)
   useEffect(() => {
