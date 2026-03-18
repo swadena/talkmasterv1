@@ -207,9 +207,7 @@ const FeedbackScreen = ({ mode, sessionStart, initialTranscript, initialConversa
     const run = async () => {
       const transcript = latestTranscriptRef.current;
       const result = await generateChallenge(transcript);
-      if (cancelled) return;
-      // If we've already moved to fallback, don't proceed
-      if (phase !== "thinking") return;
+      if (cancelled || phaseRef.current !== "thinking") return;
 
       // Handle exit intent
       if (result?.exitIntent) {
