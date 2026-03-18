@@ -1,7 +1,9 @@
+import { useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 import { MessageSquare, Mic, Lightbulb, Presentation, User, Zap, Clock, Flame } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
+import { toast } from "@/hooks/use-toast";
 import type { PracticeMode } from "@/pages/Index";
 
 const modes = [
