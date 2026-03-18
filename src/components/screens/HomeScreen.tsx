@@ -58,7 +58,7 @@ const HomeScreen = ({ onStart }: HomeScreenProps) => {
             <div className="h-2 w-2 rounded-full bg-primary/30" />
           </div>
           <span className="text-[10px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">
-            TalkMaster
+            Think2Talk
           </span>
         </div>
 

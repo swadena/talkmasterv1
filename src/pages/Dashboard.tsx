@@ -310,6 +310,13 @@ const Dashboard = () => {
                 </div>
 
                 <button
+                  onClick={() => navigate("/reset-password-change")}
+                  className="flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-surface text-foreground font-medium ease-presence transition-transform active:scale-95 ring-1 ring-border"
+                >
+                  Change Password
+                </button>
+
+                <button
                   onClick={handleLogout}
                   className="flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-destructive text-destructive-foreground font-medium ease-presence transition-transform active:scale-95"
                 >
