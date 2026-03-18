@@ -1,6 +1,6 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ChevronLeft, CheckCircle } from "lucide-react";
+import { ChevronLeft, CheckCircle, Loader2, RefreshCw, SkipForward, ArrowRight } from "lucide-react";
 import MicStatusIndicator from "@/components/MicStatusIndicator";
 import VideoAvatar from "@/components/VideoAvatar";
 import { useSpeechToText } from "@/hooks/useSpeechToText";
@@ -51,12 +51,16 @@ interface FeedbackScreenProps {
   onBack: () => void;
 }
 
-type Phase = "thinking" | "speaking" | "responding" | "farewell";
+type Phase = "thinking" | "speaking" | "responding" | "farewell" | "fallback";
 
 const FAREWELL_MESSAGE = "Thanks for practicing today! See you next time. You can also finish early anytime by pressing the Finish Session button.";
 
 const FeedbackScreen = ({ mode, sessionStart, initialTranscript, initialConversationLog, dailyTopic, onFinish, onBack }: FeedbackScreenProps) => {
-  const [phase, setPhase] = useState<Phase>("thinking");
+  const [phase, _setPhase] = useState<Phase>("thinking");
+  const setPhase = useCallback((p: Phase) => {
+    phaseRef.current = p;
+    _setPhase(p);
+  }, []);
   const [round, setRound] = useState(0);
   const [currentPrompt, setCurrentPrompt] = useState("");
   const [responseTimer, setResponseTimer] = useState(0);
@@ -67,16 +71,53 @@ const FeedbackScreen = ({ mode, sessionStart, initialTranscript, initialConversa
   const stt = useSpeechToText();
   const tts = useTextToSpeech();
   const [sessionElapsed, setSessionElapsed] = useState(0);
+  const [thinkingElapsed, setThinkingElapsed] = useState(0);
+  const pausedTimeRef = useRef(0);
+  const thinkingStartRef = useRef(0);
+  const phaseRef = useRef<Phase>("thinking");
 
   const remaining = RESPONSE_MAX - responseTimer;
 
-  // Session timer
+  // Session timer — pauses during thinking/fallback phases
   useEffect(() => {
+    if (phase === "thinking" || phase === "fallback") return;
     const t = setInterval(() => {
-      setSessionElapsed(Math.floor((Date.now() - sessionStart) / 1000));
+      setSessionElapsed(Math.floor((Date.now() - sessionStart - pausedTimeRef.current) / 1000));
     }, 1000);
     return () => clearInterval(t);
-  }, [sessionStart]);
+  }, [sessionStart, phase]);
+
+  // Track thinking elapsed time for staged UI
+  useEffect(() => {
+    if (phase === "thinking") {
+      thinkingStartRef.current = Date.now();
+      setThinkingElapsed(0);
+      const t = setInterval(() => {
+        setThinkingElapsed(Math.floor((Date.now() - thinkingStartRef.current) / 1000));
+      }, 500);
+      return () => clearInterval(t);
+    } else if (phase === "fallback") {
+      // don't reset
+    } else {
+      // Accumulate paused time when leaving thinking/fallback
+      if (thinkingStartRef.current > 0) {
+        pausedTimeRef.current += Date.now() - thinkingStartRef.current;
+        thinkingStartRef.current = 0;
+      }
+    }
+  }, [phase]);
+
+  // Auto-fallback after 5 seconds of thinking
+  useEffect(() => {
+    if (phase === "thinking" && thinkingElapsed >= 5) {
+      setPhase("fallback");
+    }
+  }, [phase, thinkingElapsed]);
+
+  const thinkingLabel = useMemo(() => {
+    if (thinkingElapsed >= 2) return "Almost ready...";
+    return "Considering your response...";
+  }, [thinkingElapsed]);
 
   // Auto-finish at session max (15 min)
   useEffect(() => {
@@ -121,22 +162,60 @@ const FeedbackScreen = ({ mode, sessionStart, initialTranscript, initialConversa
     onFinish(conversationLogRef.current);
   }, [round, tts, onFinish]);
 
+  // Retry handler for fallback
+  const handleRetry = useCallback(() => {
+    setPhase("thinking");
+    setThinkingElapsed(0);
+    // Re-trigger the round effect by bumping a retry counter
+    setRetryCount((c) => c + 1);
+  }, []);
+
+  const handleSkipToNext = useCallback(() => {
+    const prompt = getFallback();
+    setCurrentPrompt(prompt);
+    setPreviousChallenges((prev) => [...prev, prompt]);
+    conversationLogRef.current.push({ role: "challenge", text: prompt, round: round + 1 });
+    // Accumulate paused time
+    if (thinkingStartRef.current > 0) {
+      pausedTimeRef.current += Date.now() - thinkingStartRef.current;
+      thinkingStartRef.current = 0;
+    }
+    setPhase("speaking");
+    tts.speak(prompt).then(() => {
+      return new Promise((r) => setTimeout(r, 600));
+    }).then(() => {
+      setPhase("responding");
+      stt.start();
+    });
+  }, [getFallback, round, tts, stt]);
+
+  const handleContinueWithoutFeedback = useCallback(() => {
+    // Accumulate paused time
+    if (thinkingStartRef.current > 0) {
+      pausedTimeRef.current += Date.now() - thinkingStartRef.current;
+      thinkingStartRef.current = 0;
+    }
+    setPhase("responding");
+    stt.start();
+  }, [stt]);
+
+  const [retryCount, setRetryCount] = useState(0);
+
   // Each round: thinking → speaking (with TTS) → responding
   useEffect(() => {
     let cancelled = false;
 
-    setPhase("thinking");
+    if (phase !== "thinking") return;
     setResponseTimer(0);
 
     const run = async () => {
       const transcript = latestTranscriptRef.current;
       const result = await generateChallenge(transcript);
-      if (cancelled) return;
+      if (cancelled || phaseRef.current !== "thinking") return;
 
       // Handle exit intent
       if (result?.exitIntent) {
         if (!exitAssuranceAsked) {
-          // Ask assurance question once
           setExitAssuranceAsked(true);
           const assurancePrompt = result.challenge || "I understand you'd like to wrap up. Is there anything you'd like to share before we finish?";
           setCurrentPrompt(assurancePrompt);
@@ -148,11 +227,9 @@ const FeedbackScreen = ({ mode, sessionStart, initialTranscript, initialConversa
           if (cancelled) return;
           await new Promise((r) => setTimeout(r, 600));
           if (cancelled) return;
-          // Let user respond, then next round will trigger farewell
           setPhase("responding");
           stt.start();
         } else {
-          // Already asked assurance — go straight to farewell
           if (!cancelled) await startFarewell();
         }
         return;
@@ -162,7 +239,6 @@ const FeedbackScreen = ({ mode, sessionStart, initialTranscript, initialConversa
       setCurrentPrompt(prompt);
       setPreviousChallenges((prev) => [...prev, prompt]);
 
-      // Log the challenge
       conversationLogRef.current.push({
         role: "challenge",
         text: prompt,
@@ -171,11 +247,9 @@ const FeedbackScreen = ({ mode, sessionStart, initialTranscript, initialConversa
 
       setPhase("speaking");
 
-      // Speak the challenge aloud; wait for it to finish
       await tts.speak(prompt);
       if (cancelled) return;
 
-      // Small pause after speech ends before mic activates
       await new Promise((r) => setTimeout(r, 600));
       if (cancelled) return;
 
@@ -188,7 +262,7 @@ const FeedbackScreen = ({ mode, sessionStart, initialTranscript, initialConversa
       cancelled = true;
       tts.cancel();
     };
-  }, [round]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [round, retryCount]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Response timer
   useEffect(() => {
@@ -211,6 +285,7 @@ const FeedbackScreen = ({ mode, sessionStart, initialTranscript, initialConversa
         round: round + 1,
       });
 
+      setPhase("thinking");
       setRound((r) => r + 1);
     }
   }, [responseTimer, phase]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -227,6 +302,7 @@ const FeedbackScreen = ({ mode, sessionStart, initialTranscript, initialConversa
       round: round + 1,
     });
 
+    setPhase("thinking");
     setRound((r) => r + 1);
   };
 
@@ -327,9 +403,49 @@ const FeedbackScreen = ({ mode, sessionStart, initialTranscript, initialConversa
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="rounded-3xl bg-background/30 px-6 py-3 backdrop-blur-xl"
+              className="rounded-3xl bg-background/30 px-6 py-3 backdrop-blur-xl flex items-center gap-2"
             >
-              <p className="text-sm text-muted-foreground">Considering your response...</p>
+              <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+              <p className="text-sm text-muted-foreground">{thinkingLabel}</p>
+            </motion.div>
+          )}
+          {phase === "fallback" && (
+            <motion.div
+              key="fallback"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.3 }}
+              className="mx-6 flex flex-col items-center gap-3"
+            >
+              <div className="rounded-3xl bg-background/30 px-6 py-4 backdrop-blur-xl">
+                <p className="text-center text-sm text-muted-foreground">
+                  This is taking longer than expected.
+                </p>
+              </div>
+              <div className="flex flex-col gap-2 w-full max-w-[260px]">
+                <button
+                  onClick={handleRetry}
+                  className="flex items-center justify-center gap-2 rounded-2xl bg-primary/90 px-4 py-2.5 text-sm font-medium text-primary-foreground backdrop-blur-md transition-transform active:scale-95"
+                >
+                  <RefreshCw className="h-3.5 w-3.5" />
+                  Retry analysis
+                </button>
+                <button
+                  onClick={handleSkipToNext}
+                  className="flex items-center justify-center gap-2 rounded-2xl bg-background/30 px-4 py-2.5 text-sm font-medium text-foreground/80 backdrop-blur-md transition-transform active:scale-95"
+                >
+                  <SkipForward className="h-3.5 w-3.5" />
+                  Skip to next question
+                </button>
+                <button
+                  onClick={handleContinueWithoutFeedback}
+                  className="flex items-center justify-center gap-2 rounded-2xl bg-background/20 px-4 py-2.5 text-sm font-medium text-foreground/60 backdrop-blur-md transition-transform active:scale-95"
+                >
+                  <ArrowRight className="h-3.5 w-3.5" />
+                  Continue without feedback
+                </button>
+              </div>
             </motion.div>
           )}
           {phase === "responding" && (
