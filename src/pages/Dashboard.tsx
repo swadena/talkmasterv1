@@ -270,6 +270,14 @@ const Dashboard = () => {
                 <div className="rounded-3xl bg-surface p-5 card-depth text-center mb-6">
                   <p className="tabular-nums text-4xl font-semibold text-foreground">{credits}</p>
                   <p className="text-xs text-muted-foreground mt-1">Credits remaining</p>
+                  {credits > 0 && daysUntilExpiry !== null && (
+                    <p className={`text-xs mt-2 ${daysUntilExpiry <= 5 ? "text-destructive font-medium" : "text-muted-foreground"}`}>
+                      {daysUntilExpiry <= 5 ? "⚠️ " : "⏳ "}
+                      {daysUntilExpiry <= 5
+                        ? `${credits} credits expire in ${daysUntilExpiry} day${daysUntilExpiry !== 1 ? "s" : ""}`
+                        : `Expires in ${daysUntilExpiry} day${daysUntilExpiry !== 1 ? "s" : ""}`}
+                    </p>
+                  )}
                 </div>
                 <CreditPackages onPurchase={refreshCredits} />
               </motion.div>

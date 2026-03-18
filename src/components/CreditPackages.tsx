@@ -91,6 +91,9 @@ const CreditPackages = ({ onPurchase }: CreditPackagesProps) => {
         <Lock className="inline h-3 w-3 mr-0.5" />
         Secure payment processing
       </p>
+      <p className="text-[10px] text-muted-foreground/50 text-center mt-1">
+        All credits valid for 60 days · Top up anytime to extend your credits
+      </p>
     </div>
   );
 };

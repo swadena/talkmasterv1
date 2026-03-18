@@ -71,6 +71,15 @@ const HomeScreen = ({ onStart }: HomeScreenProps) => {
         </p>
       </div>
 
+      {/* Expiry warning banner */}
+      {showExpiryBanner && (
+        <div className="mt-4 rounded-2xl bg-destructive/10 border border-destructive/20 px-4 py-3">
+          <p className="text-xs font-medium text-destructive">
+            ⚠️ {credits} credit{credits !== 1 ? "s" : ""} expire in {daysUntilExpiry} day{daysUntilExpiry !== 1 ? "s" : ""} — practice now!
+          </p>
+        </div>
+      )}
+
       {/* Mode cards */}
       <div className="mt-8 flex flex-col gap-3">
         {modes.map((mode, i) => (
