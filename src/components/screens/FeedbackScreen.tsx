@@ -398,9 +398,49 @@ const FeedbackScreen = ({ mode, sessionStart, initialTranscript, initialConversa
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="rounded-3xl bg-background/30 px-6 py-3 backdrop-blur-xl"
+              className="rounded-3xl bg-background/30 px-6 py-3 backdrop-blur-xl flex items-center gap-2"
             >
-              <p className="text-sm text-muted-foreground">Considering your response...</p>
+              <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+              <p className="text-sm text-muted-foreground">{thinkingLabel}</p>
+            </motion.div>
+          )}
+          {phase === "fallback" && (
+            <motion.div
+              key="fallback"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.3 }}
+              className="mx-6 flex flex-col items-center gap-3"
+            >
+              <div className="rounded-3xl bg-background/30 px-6 py-4 backdrop-blur-xl">
+                <p className="text-center text-sm text-muted-foreground">
+                  This is taking longer than expected.
+                </p>
+              </div>
+              <div className="flex flex-col gap-2 w-full max-w-[260px]">
+                <button
+                  onClick={handleRetry}
+                  className="flex items-center justify-center gap-2 rounded-2xl bg-primary/90 px-4 py-2.5 text-sm font-medium text-primary-foreground backdrop-blur-md transition-transform active:scale-95"
+                >
+                  <RefreshCw className="h-3.5 w-3.5" />
+                  Retry analysis
+                </button>
+                <button
+                  onClick={handleSkipToNext}
+                  className="flex items-center justify-center gap-2 rounded-2xl bg-background/30 px-4 py-2.5 text-sm font-medium text-foreground/80 backdrop-blur-md transition-transform active:scale-95"
+                >
+                  <SkipForward className="h-3.5 w-3.5" />
+                  Skip to next question
+                </button>
+                <button
+                  onClick={handleContinueWithoutFeedback}
+                  className="flex items-center justify-center gap-2 rounded-2xl bg-background/20 px-4 py-2.5 text-sm font-medium text-foreground/60 backdrop-blur-md transition-transform active:scale-95"
+                >
+                  <ArrowRight className="h-3.5 w-3.5" />
+                  Continue without feedback
+                </button>
+              </div>
             </motion.div>
           )}
           {phase === "responding" && (
