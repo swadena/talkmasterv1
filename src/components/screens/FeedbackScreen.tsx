@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ChevronLeft, CheckCircle } from "lucide-react";
+import { ChevronLeft, CheckCircle, Loader2, RefreshCw, SkipForward, ArrowRight } from "lucide-react";
 import MicStatusIndicator from "@/components/MicStatusIndicator";
 import VideoAvatar from "@/components/VideoAvatar";
 import { useSpeechToText } from "@/hooks/useSpeechToText";
