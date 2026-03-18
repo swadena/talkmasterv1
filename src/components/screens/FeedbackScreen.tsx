@@ -70,6 +70,7 @@ const FeedbackScreen = ({ mode, sessionStart, initialTranscript, initialConversa
   const [thinkingElapsed, setThinkingElapsed] = useState(0);
   const pausedTimeRef = useRef(0);
   const thinkingStartRef = useRef(0);
+  const phaseRef = useRef<Phase>("thinking");
 
   const remaining = RESPONSE_MAX - responseTimer;
 
