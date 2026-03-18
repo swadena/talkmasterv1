@@ -20,43 +20,10 @@ const CreditPackages = ({ onPurchase }: CreditPackagesProps) => {
   const [purchasing, setPurchasing] = useState<string | null>(null);
 
   const handlePurchase = async (pkg: typeof packages[0]) => {
-    if (!user) return;
-    setPurchasing(pkg.id);
-
-    try {
-      if (pkg.id === "pro") {
-        // Temporarily grant 30 credits for Pro Pack
-        const { data: profile } = await supabase
-          .from("profiles")
-          .select("credits")
-          .eq("id", user.id)
-          .single();
-        const newExpiry = new Date(Date.now() + 60 * 24 * 60 * 60 * 1000).toISOString();
-        const { error } = await supabase
-          .from("profiles")
-          .update({
-            credits: (profile?.credits ?? 0) + 30,
-            credits_expire_at: newExpiry,
-          })
-          .eq("id", user.id);
-        if (error) throw error;
-        toast({ title: "Credits added!", description: "30 credits have been added to your account." });
-        onPurchase?.();
-      } else {
-        toast({
-          title: "Payment coming soon",
-          description: "Credit purchases via payment will be available shortly.",
-        });
-      }
-    } catch (err) {
-      toast({
-        title: "Purchase failed",
-        description: "Please try again later.",
-        variant: "destructive",
-      });
-    } finally {
-      setPurchasing(null);
-    }
+    toast({
+      title: "Payment coming soon",
+      description: "Credit purchases via payment will be available shortly.",
+    });
   };
 
   return (
