@@ -30,14 +30,22 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [credits, setCredits] = useState(0);
+  const [creditsExpireAt, setCreditsExpireAt] = useState<Date | null>(null);
+
+  const daysUntilExpiry = creditsExpireAt
+    ? Math.max(0, Math.ceil((creditsExpireAt.getTime() - Date.now()) / (1000 * 60 * 60 * 24)))
+    : null;
 
   const fetchCredits = async (userId: string) => {
     const { data } = await supabase
       .from("profiles")
-      .select("credits")
+      .select("credits, credits_expire_at")
       .eq("id", userId)
       .single();
-    if (data) setCredits(data.credits);
+    if (data) {
+      setCredits(data.credits);
+      setCreditsExpireAt(data.credits_expire_at ? new Date(data.credits_expire_at) : null);
+    }
   };
 
   const refreshCredits = async () => {
