@@ -1,7 +1,4 @@
-import { useState } from "react";
-import { useAuth } from "@/contexts/AuthContext";
-import { supabase } from "@/integrations/supabase/client";
-import { Loader2, Zap, Lock } from "lucide-react";
+import { Lock, Zap } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 
 const packages = [
@@ -16,47 +13,11 @@ interface CreditPackagesProps {
 }
 
 const CreditPackages = ({ onPurchase }: CreditPackagesProps) => {
-  const { user } = useAuth();
-  const [purchasing, setPurchasing] = useState<string | null>(null);
-
-  const handlePurchase = async (pkg: typeof packages[0]) => {
-    if (!user) return;
-    setPurchasing(pkg.id);
-
-    try {
-      if (pkg.id === "pro") {
-        // Temporarily grant 30 credits for Pro Pack
-        const { data: profile } = await supabase
-          .from("profiles")
-          .select("credits")
-          .eq("id", user.id)
-          .single();
-        const newExpiry = new Date(Date.now() + 60 * 24 * 60 * 60 * 1000).toISOString();
-        const { error } = await supabase
-          .from("profiles")
-          .update({
-            credits: (profile?.credits ?? 0) + 30,
-            credits_expire_at: newExpiry,
-          })
-          .eq("id", user.id);
-        if (error) throw error;
-        toast({ title: "Credits added!", description: "30 credits have been added to your account." });
-        onPurchase?.();
-      } else {
-        toast({
-          title: "Payment coming soon",
-          description: "Credit purchases via payment will be available shortly.",
-        });
-      }
-    } catch (err) {
-      toast({
-        title: "Purchase failed",
-        description: "Please try again later.",
-        variant: "destructive",
-      });
-    } finally {
-      setPurchasing(null);
-    }
+  const handlePurchase = () => {
+    toast({
+      title: "Payment coming soon",
+      description: "Credit purchases via payment will be available shortly.",
+    });
   };
 
   return (
@@ -65,9 +26,8 @@ const CreditPackages = ({ onPurchase }: CreditPackagesProps) => {
       {packages.map((pkg) => (
         <button
           key={pkg.id}
-          onClick={() => handlePurchase(pkg)}
-          disabled={purchasing !== null}
-          className="flex items-center justify-between rounded-2xl bg-surface p-4 card-depth text-left ease-presence transition-transform active:scale-[0.98] disabled:opacity-50"
+          onClick={handlePurchase}
+          className="flex items-center justify-between rounded-2xl bg-surface p-4 card-depth text-left opacity-60 cursor-not-allowed"
         >
           <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10">
@@ -78,13 +38,7 @@ const CreditPackages = ({ onPurchase }: CreditPackagesProps) => {
               <p className="text-[11px] text-muted-foreground">{pkg.credits} credits</p>
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            {purchasing === pkg.id ? (
-              <Loader2 className="h-4 w-4 animate-spin text-primary" />
-            ) : (
-              <span className="text-sm font-semibold text-primary">${pkg.price}</span>
-            )}
-          </div>
+          <span className="text-sm font-semibold text-primary">${pkg.price}</span>
         </button>
       ))}
       <p className="text-[10px] text-muted-foreground/60 text-center mt-1">
