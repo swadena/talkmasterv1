@@ -282,6 +282,7 @@ const FeedbackScreen = ({ mode, sessionStart, initialTranscript, initialConversa
         round: round + 1,
       });
 
+      setPhase("thinking");
       setRound((r) => r + 1);
     }
   }, [responseTimer, phase]); // eslint-disable-line react-hooks/exhaustive-deps
