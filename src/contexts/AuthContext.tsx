@@ -6,6 +6,8 @@ interface AuthContextType {
   user: User | null;
   loading: boolean;
   credits: number;
+  creditsExpireAt: Date | null;
+  daysUntilExpiry: number | null;
   refreshCredits: () => Promise<void>;
   deductCredit: () => Promise<boolean>;
   signOut: () => Promise<void>;
