@@ -67,6 +67,9 @@ const FeedbackScreen = ({ mode, sessionStart, initialTranscript, initialConversa
   const stt = useSpeechToText();
   const tts = useTextToSpeech();
   const [sessionElapsed, setSessionElapsed] = useState(0);
+  const [thinkingElapsed, setThinkingElapsed] = useState(0);
+  const pausedTimeRef = useRef(0);
+  const thinkingStartRef = useRef(0);
 
   const remaining = RESPONSE_MAX - responseTimer;
 
