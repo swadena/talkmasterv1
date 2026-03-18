@@ -157,22 +157,62 @@ const FeedbackScreen = ({ mode, sessionStart, initialTranscript, initialConversa
     onFinish(conversationLogRef.current);
   }, [round, tts, onFinish]);
 
+  // Retry handler for fallback
+  const handleRetry = useCallback(() => {
+    setPhase("thinking");
+    setThinkingElapsed(0);
+    // Re-trigger the round effect by bumping a retry counter
+    setRetryCount((c) => c + 1);
+  }, []);
+
+  const handleSkipToNext = useCallback(() => {
+    const prompt = getFallback();
+    setCurrentPrompt(prompt);
+    setPreviousChallenges((prev) => [...prev, prompt]);
+    conversationLogRef.current.push({ role: "challenge", text: prompt, round: round + 1 });
+    // Accumulate paused time
+    if (thinkingStartRef.current > 0) {
+      pausedTimeRef.current += Date.now() - thinkingStartRef.current;
+      thinkingStartRef.current = 0;
+    }
+    setPhase("speaking");
+    tts.speak(prompt).then(() => {
+      return new Promise((r) => setTimeout(r, 600));
+    }).then(() => {
+      setPhase("responding");
+      stt.start();
+    });
+  }, [getFallback, round, tts, stt]);
+
+  const handleContinueWithoutFeedback = useCallback(() => {
+    // Accumulate paused time
+    if (thinkingStartRef.current > 0) {
+      pausedTimeRef.current += Date.now() - thinkingStartRef.current;
+      thinkingStartRef.current = 0;
+    }
+    setPhase("responding");
+    stt.start();
+  }, [stt]);
+
+  const [retryCount, setRetryCount] = useState(0);
+
   // Each round: thinking → speaking (with TTS) → responding
   useEffect(() => {
     let cancelled = false;
 
-    setPhase("thinking");
+    if (phase !== "thinking") return;
     setResponseTimer(0);
 
     const run = async () => {
       const transcript = latestTranscriptRef.current;
       const result = await generateChallenge(transcript);
       if (cancelled) return;
+      // If we've already moved to fallback, don't proceed
+      if (phase !== "thinking") return;
 
       // Handle exit intent
       if (result?.exitIntent) {
         if (!exitAssuranceAsked) {
-          // Ask assurance question once
           setExitAssuranceAsked(true);
           const assurancePrompt = result.challenge || "I understand you'd like to wrap up. Is there anything you'd like to share before we finish?";
           setCurrentPrompt(assurancePrompt);
@@ -184,11 +224,9 @@ const FeedbackScreen = ({ mode, sessionStart, initialTranscript, initialConversa
           if (cancelled) return;
           await new Promise((r) => setTimeout(r, 600));
           if (cancelled) return;
-          // Let user respond, then next round will trigger farewell
           setPhase("responding");
           stt.start();
         } else {
-          // Already asked assurance — go straight to farewell
           if (!cancelled) await startFarewell();
         }
         return;
@@ -198,7 +236,6 @@ const FeedbackScreen = ({ mode, sessionStart, initialTranscript, initialConversa
       setCurrentPrompt(prompt);
       setPreviousChallenges((prev) => [...prev, prompt]);
 
-      // Log the challenge
       conversationLogRef.current.push({
         role: "challenge",
         text: prompt,
@@ -207,11 +244,9 @@ const FeedbackScreen = ({ mode, sessionStart, initialTranscript, initialConversa
 
       setPhase("speaking");
 
-      // Speak the challenge aloud; wait for it to finish
       await tts.speak(prompt);
       if (cancelled) return;
 
-      // Small pause after speech ends before mic activates
       await new Promise((r) => setTimeout(r, 600));
       if (cancelled) return;
 
@@ -224,7 +259,7 @@ const FeedbackScreen = ({ mode, sessionStart, initialTranscript, initialConversa
       cancelled = true;
       tts.cancel();
     };
-  }, [round]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [round, retryCount]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Response timer
   useEffect(() => {
