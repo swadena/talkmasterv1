@@ -223,6 +223,12 @@ const Index = () => {
           open={showFeedbackPopup}
           onClose={() => setShowFeedbackPopup(false)}
         />
+
+        {/* Paywall popup */}
+        <PaywallPopup
+          open={showPaywall}
+          onClose={() => setShowPaywall(false)}
+        />
       </div>
     </div>
   );
