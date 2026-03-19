@@ -275,7 +275,9 @@ const Dashboard = () => {
                           </div>
                           <span className="tabular-nums text-xs font-medium text-foreground w-8 text-right">{s.avg}</span>
                         </div>
-                        <p className="ml-0 mt-1 text-[10px] leading-relaxed text-muted-foreground/70">{SKILL_HINTS[s.key]}</p>
+                        <p className="ml-0 mt-1 text-[10px] leading-relaxed text-muted-foreground/70">
+                          {metricTips?.[s.key] || SKILL_HINTS[s.key]}
+                        </p>
                       </div>
                     ))}
                   </div>
