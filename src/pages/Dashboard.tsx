@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import { motion } from "framer-motion";
 import { ChevronLeft, LogOut, TrendingUp, BarChart3, Clock, CreditCard, Loader2, Gift } from "lucide-react";
 import { useNavigate } from "react-router-dom";
