@@ -8,6 +8,7 @@ interface AuthContextType {
   credits: number;
   creditsExpireAt: Date | null;
   daysUntilExpiry: number | null;
+  foundingUser: boolean;
   refreshCredits: () => Promise<void>;
   deductCredit: () => Promise<boolean>;
   signOut: () => Promise<void>;
@@ -19,6 +20,7 @@ const AuthContext = createContext<AuthContextType>({
   credits: 0,
   creditsExpireAt: null,
   daysUntilExpiry: null,
+  foundingUser: false,
   refreshCredits: async () => {},
   deductCredit: async () => false,
   signOut: async () => {},
@@ -31,6 +33,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [loading, setLoading] = useState(true);
   const [credits, setCredits] = useState(0);
   const [creditsExpireAt, setCreditsExpireAt] = useState<Date | null>(null);
+  const [foundingUser, setFoundingUser] = useState(false);
 
   const daysUntilExpiry = creditsExpireAt
     ? Math.max(0, Math.ceil((creditsExpireAt.getTime() - Date.now()) / (1000 * 60 * 60 * 24)))
@@ -39,12 +42,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const fetchCredits = async (userId: string) => {
     const { data } = await supabase
       .from("profiles")
-      .select("credits, credits_expire_at")
+      .select("credits, credits_expire_at, founding_user")
       .eq("id", userId)
       .single();
     if (data) {
       setCredits(data.credits);
       setCreditsExpireAt(data.credits_expire_at ? new Date(data.credits_expire_at) : null);
+      setFoundingUser((data as any).founding_user ?? false);
     }
   };
 
@@ -121,7 +125,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, loading, credits, creditsExpireAt, daysUntilExpiry, refreshCredits, deductCredit, signOut }}>
+    <AuthContext.Provider value={{ user, loading, credits, creditsExpireAt, daysUntilExpiry, foundingUser, refreshCredits, deductCredit, signOut }}>
       {children}
     </AuthContext.Provider>
   );

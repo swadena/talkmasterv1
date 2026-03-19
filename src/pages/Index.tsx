@@ -9,6 +9,7 @@ import RecordingScreen from "@/components/screens/RecordingScreen";
 import FeedbackScreen from "@/components/screens/FeedbackScreen";
 import SummaryScreen from "@/components/screens/SummaryScreen";
 import FeedbackRewardPopup from "@/components/FeedbackRewardPopup";
+import PaywallPopup from "@/components/PaywallPopup";
 import { toast } from "@/hooks/use-toast";
 
 export type AppScreen = "home" | "daily_intro" | "recording" | "feedback" | "summary";
@@ -30,6 +31,7 @@ const Index = () => {
   const [sessionStart, setSessionStart] = useState<number>(0);
   const [dailyTopic, setDailyTopic] = useState<string>("");
   const [showFeedbackPopup, setShowFeedbackPopup] = useState(false);
+  const [showPaywall, setShowPaywall] = useState(false);
 
   const handleStart = (selectedMode: PracticeMode) => {
     if (!user) {
@@ -37,12 +39,7 @@ const Index = () => {
       return;
     }
     if (credits <= 0) {
-      toast({
-        title: "No credits remaining",
-        description: "Purchase more credits to start a session.",
-        variant: "destructive",
-      });
-      navigate("/dashboard");
+      setShowPaywall(true);
       return;
     }
 
@@ -131,6 +128,23 @@ const Index = () => {
 
     // Check if we should show the feedback popup
     await checkFeedbackEligibility();
+
+    // Show paywall if credits are now 0
+    const { data: updatedProfile } = await supabase
+      .from("profiles")
+      .select("credits")
+      .eq("id", user.id)
+      .single();
+
+    if (updatedProfile && updatedProfile.credits <= 0) {
+      const { count } = await supabase
+        .from("sessions")
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", user.id);
+      if ((count || 0) >= 3) {
+        setShowPaywall(true);
+      }
+    }
   };
 
   return (
@@ -203,6 +217,12 @@ const Index = () => {
         <FeedbackRewardPopup
           open={showFeedbackPopup}
           onClose={() => setShowFeedbackPopup(false)}
+        />
+
+        {/* Paywall popup */}
+        <PaywallPopup
+          open={showPaywall}
+          onClose={() => setShowPaywall(false)}
         />
       </div>
     </div>

@@ -1,0 +1,1 @@
+ALTER TABLE public.profiles ADD COLUMN founding_user boolean NOT NULL DEFAULT false;

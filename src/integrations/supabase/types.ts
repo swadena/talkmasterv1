@@ -22,6 +22,7 @@ export type Database = {
           email: string | null
           feedback_reward_claimed: boolean
           feedback_skipped_once: boolean
+          founding_user: boolean
           has_purchased: boolean
           id: string
           referral_code: string
@@ -34,6 +35,7 @@ export type Database = {
           email?: string | null
           feedback_reward_claimed?: boolean
           feedback_skipped_once?: boolean
+          founding_user?: boolean
           has_purchased?: boolean
           id: string
           referral_code?: string
@@ -46,6 +48,7 @@ export type Database = {
           email?: string | null
           feedback_reward_claimed?: boolean
           feedback_skipped_once?: boolean
+          founding_user?: boolean
           has_purchased?: boolean
           id?: string
           referral_code?: string
