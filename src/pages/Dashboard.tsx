@@ -43,10 +43,12 @@ type Tab = "progress" | "history" | "credits" | "referrals" | "account";
 
 const Dashboard = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { user, credits, signOut, refreshCredits, daysUntilExpiry } = useAuth();
   const [sessions, setSessions] = useState<SessionRecord[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<Tab>("progress");
+  const initialTab = (searchParams.get("tab") as Tab) || "progress";
+  const [activeTab, setActiveTab] = useState<Tab>(initialTab);
   const [selectedSession, setSelectedSession] = useState<SessionRecord | null>(null);
   const [insight, setInsight] = useState<string | null>(null);
   const [trends, setTrends] = useState<Record<string, string> | null>(null);
