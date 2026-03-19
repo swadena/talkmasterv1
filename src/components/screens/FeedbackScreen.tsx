@@ -107,15 +107,16 @@ const FeedbackScreen = ({ mode, sessionStart, initialTranscript, initialConversa
     }
   }, [phase]);
 
-  // Auto-fallback after 5 seconds of thinking
+  // Auto-fallback after 12 seconds of thinking (cold-start + AI response needs time)
   useEffect(() => {
-    if (phase === "thinking" && thinkingElapsed >= 5) {
+    if (phase === "thinking" && thinkingElapsed >= 12) {
       setPhase("fallback");
     }
   }, [phase, thinkingElapsed]);
 
   const thinkingLabel = useMemo(() => {
-    if (thinkingElapsed >= 2) return "Almost ready...";
+    if (thinkingElapsed >= 8) return "Almost ready...";
+    if (thinkingElapsed >= 3) return "Thinking about your response...";
     return "Considering your response...";
   }, [thinkingElapsed]);
 
