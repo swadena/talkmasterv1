@@ -65,7 +65,7 @@ const HomeScreen = ({ onStart }: HomeScreenProps) => {
         {user && (
           <div className="flex items-center gap-2">
             <button
-              onClick={() => navigate("/dashboard")}
+              onClick={() => navigate("/dashboard?tab=credits")}
               className="flex items-center gap-1 rounded-full bg-primary/10 px-2.5 py-1 ease-presence transition-transform active:scale-95"
             >
               <Zap className="h-3 w-3 text-primary" />
