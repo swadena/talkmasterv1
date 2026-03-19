@@ -31,6 +31,7 @@ const Index = () => {
   const [sessionStart, setSessionStart] = useState<number>(0);
   const [dailyTopic, setDailyTopic] = useState<string>("");
   const [showFeedbackPopup, setShowFeedbackPopup] = useState(false);
+  const [showPaywall, setShowPaywall] = useState(false);
 
   const handleStart = (selectedMode: PracticeMode) => {
     if (!user) {
