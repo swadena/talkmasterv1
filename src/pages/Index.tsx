@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { AnimatePresence } from "framer-motion";
 import { useAuth } from "@/contexts/AuthContext";
@@ -8,6 +8,7 @@ import DailyChallengeIntroScreen from "@/components/screens/DailyChallengeIntroS
 import RecordingScreen from "@/components/screens/RecordingScreen";
 import FeedbackScreen from "@/components/screens/FeedbackScreen";
 import SummaryScreen from "@/components/screens/SummaryScreen";
+import FeedbackRewardPopup from "@/components/FeedbackRewardPopup";
 import { toast } from "@/hooks/use-toast";
 
 export type AppScreen = "home" | "daily_intro" | "recording" | "feedback" | "summary";
@@ -28,6 +29,7 @@ const Index = () => {
   const [conversationLog, setConversationLog] = useState<ConversationEntry[]>([]);
   const [sessionStart, setSessionStart] = useState<number>(0);
   const [dailyTopic, setDailyTopic] = useState<string>("");
+  const [showFeedbackPopup, setShowFeedbackPopup] = useState(false);
 
   const handleStart = (selectedMode: PracticeMode) => {
     if (!user) {
@@ -68,13 +70,47 @@ const Index = () => {
     setScreen("summary");
   };
 
+  const checkFeedbackEligibility = async () => {
+    if (!user) return;
+
+    try {
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("feedback_reward_claimed, feedback_skipped_once")
+        .eq("id", user.id)
+        .single();
+
+      if (!profile) return;
+      const claimed = (profile as any).feedback_reward_claimed;
+      const skippedOnce = (profile as any).feedback_skipped_once;
+
+      // Already claimed — never show again
+      if (claimed) return;
+
+      const { count } = await supabase
+        .from("sessions")
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", user.id);
+
+      const sessionCount = count || 0;
+
+      // Show after 2nd session, or after 3rd if skipped once
+      if (sessionCount === 2 && !skippedOnce) {
+        setShowFeedbackPopup(true);
+      } else if (sessionCount === 3 && skippedOnce) {
+        setShowFeedbackPopup(true);
+      }
+      // After 3rd session, never show again
+    } catch (e) {
+      console.error("Feedback eligibility check failed:", e);
+    }
+  };
+
   const handleSessionComplete = async (assessment: { scores: Record<string, number>; feedback: Record<string, string>; tips: string[] } | null) => {
     if (!user) return;
 
-    // Deduct credit
     await deductCredit();
 
-    // Save session to database
     if (assessment) {
       const overallScore = Math.round(
         Object.values(assessment.scores).reduce((s, v) => s + (v / 10) * 100, 0) / Object.keys(assessment.scores).length
@@ -92,6 +128,9 @@ const Index = () => {
     }
 
     await refreshCredits();
+
+    // Check if we should show the feedback popup
+    await checkFeedbackEligibility();
   };
 
   return (
@@ -159,6 +198,12 @@ const Index = () => {
             />
           )}
         </AnimatePresence>
+
+        {/* Feedback reward popup */}
+        <FeedbackRewardPopup
+          open={showFeedbackPopup}
+          onClose={() => setShowFeedbackPopup(false)}
+        />
       </div>
     </div>
   );
