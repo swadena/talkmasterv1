@@ -33,7 +33,7 @@ serve(async (req) => {
       .limit(6);
 
     if (!sessions || sessions.length === 0) {
-      return new Response(JSON.stringify({ insight: null, trends: null }), {
+      return new Response(JSON.stringify({ insight: null, trends: null, metricTips: null }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
@@ -41,35 +41,37 @@ serve(async (req) => {
     const recent = sessions.slice(0, Math.min(3, sessions.length));
     const previous = sessions.slice(3);
 
-    // Calculate trends
+    // Calculate trends with ±0.2 threshold
     const skillKeys = ["clarity", "logic", "evidence", "confidence", "pacing", "filler_words"];
     const trends: Record<string, string> = {};
+    const recentAvgs: Record<string, number> = {};
 
     for (const key of skillKeys) {
-      const recentAvg = recent.filter(s => s.scores && (s.scores as any)[key] != null)
-        .reduce((sum, s) => sum + ((s.scores as any)[key] || 0), 0) / (recent.length || 1);
-      
+      const recentScored = recent.filter(s => s.scores && (s.scores as any)[key] != null);
+      const recentAvg = recentScored.length
+        ? recentScored.reduce((sum, s) => sum + ((s.scores as any)[key] || 0), 0) / recentScored.length
+        : 0;
+      recentAvgs[key] = Math.round(recentAvg * 10) / 10;
+
       if (previous.length >= 2) {
-        const prevAvg = previous.filter(s => s.scores && (s.scores as any)[key] != null)
-          .reduce((sum, s) => sum + ((s.scores as any)[key] || 0), 0) / (previous.length || 1);
+        const prevScored = previous.filter(s => s.scores && (s.scores as any)[key] != null);
+        const prevAvg = prevScored.length
+          ? prevScored.reduce((sum, s) => sum + ((s.scores as any)[key] || 0), 0) / prevScored.length
+          : 0;
         const diff = recentAvg - prevAvg;
-        if (diff > 0.5) trends[key] = "improving";
-        else if (diff < -0.5) trends[key] = "needs_work";
+        if (diff >= 0.2) trends[key] = "improving";
+        else if (diff <= -0.2) trends[key] = "needs_work";
         else trends[key] = "stable";
       } else {
         trends[key] = "stable";
       }
     }
 
-    // Generate AI insight from recent sessions
+    // Generate AI insight + per-metric tips
     let insight: string | null = null;
+    let metricTips: Record<string, string> | null = null;
 
     if (lovableApiKey && recent.length >= 2) {
-      const sessionsData = recent.map(s => ({
-        scores: s.scores,
-        overall: s.overall_score,
-      }));
-
       try {
         const aiRes = await fetch("https://ai-gateway.lovable.dev/api/chat/completions", {
           method: "POST",
@@ -82,25 +84,45 @@ serve(async (req) => {
             messages: [
               {
                 role: "system",
-                content: `You are a concise speaking coach. Given a user's recent session scores, write a 2-3 sentence insight summary. Highlight 1-2 strengths and 1 area to improve. Be specific and encouraging. Do NOT use bullet points. Keep it under 50 words. Skills scored 1-10: clarity, logic, evidence, confidence, pacing, filler_words.`,
+                content: `You are a concise speaking coach. Given a user's recent session score averages and trends, respond with ONLY valid JSON in this exact format:
+{
+  "summary": "2-3 sentence summary highlighting 1-2 strengths (highest scores) and 1 area to improve (lowest score). Be specific and encouraging. Under 50 words.",
+  "tips": {
+    "clarity": "1 sentence actionable tip based on the score",
+    "logic": "1 sentence actionable tip",
+    "evidence": "1 sentence actionable tip",
+    "confidence": "1 sentence actionable tip",
+    "pacing": "1 sentence actionable tip",
+    "filler_words": "1 sentence actionable tip"
+  }
+}
+Skills are scored 1-10. Write tips that are specific and actionable, e.g. "You tend to hesitate when answering follow-up questions. Try to respond more directly."
+Do NOT include any text outside the JSON object.`,
               },
               {
                 role: "user",
-                content: `Recent sessions (newest first): ${JSON.stringify(sessionsData)}`,
+                content: `Score averages (last 3 sessions): ${JSON.stringify(recentAvgs)}\nTrends: ${JSON.stringify(trends)}`,
               },
             ],
-            max_tokens: 150,
+            max_tokens: 400,
           }),
         });
 
         const aiData = await aiRes.json();
-        insight = aiData.choices?.[0]?.message?.content?.trim() || null;
+        const raw = aiData.choices?.[0]?.message?.content?.trim();
+        if (raw) {
+          // Strip markdown code fences if present
+          const cleaned = raw.replace(/^```json?\s*/i, "").replace(/\s*```$/i, "");
+          const parsed = JSON.parse(cleaned);
+          insight = parsed.summary || null;
+          metricTips = parsed.tips || null;
+        }
       } catch (aiErr) {
         console.error("AI insight generation failed:", aiErr);
       }
     }
 
-    return new Response(JSON.stringify({ insight, trends }), {
+    return new Response(JSON.stringify({ insight, trends, metricTips }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (error) {
