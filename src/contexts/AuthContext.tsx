@@ -20,6 +20,7 @@ const AuthContext = createContext<AuthContextType>({
   credits: 0,
   creditsExpireAt: null,
   daysUntilExpiry: null,
+  foundingUser: false,
   refreshCredits: async () => {},
   deductCredit: async () => false,
   signOut: async () => {},
