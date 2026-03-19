@@ -39,12 +39,7 @@ const Index = () => {
       return;
     }
     if (credits <= 0) {
-      toast({
-        title: "No credits remaining",
-        description: "Purchase more credits to start a session.",
-        variant: "destructive",
-      });
-      navigate("/dashboard");
+      setShowPaywall(true);
       return;
     }
 
