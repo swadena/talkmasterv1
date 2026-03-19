@@ -107,9 +107,9 @@ const FeedbackScreen = ({ mode, sessionStart, initialTranscript, initialConversa
     }
   }, [phase]);
 
-  // Auto-fallback after 5 seconds of thinking
+  // Auto-fallback after 12 seconds of thinking (cold-start + AI response needs time)
   useEffect(() => {
-    if (phase === "thinking" && thinkingElapsed >= 5) {
+    if (phase === "thinking" && thinkingElapsed >= 12) {
       setPhase("fallback");
     }
   }, [phase, thinkingElapsed]);
