@@ -115,7 +115,8 @@ const FeedbackScreen = ({ mode, sessionStart, initialTranscript, initialConversa
   }, [phase, thinkingElapsed]);
 
   const thinkingLabel = useMemo(() => {
-    if (thinkingElapsed >= 2) return "Almost ready...";
+    if (thinkingElapsed >= 8) return "Almost ready...";
+    if (thinkingElapsed >= 3) return "Thinking about your response...";
     return "Considering your response...";
   }, [thinkingElapsed]);
 
