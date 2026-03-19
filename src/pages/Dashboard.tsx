@@ -49,6 +49,7 @@ const Dashboard = () => {
   const [selectedSession, setSelectedSession] = useState<SessionRecord | null>(null);
   const [insight, setInsight] = useState<string | null>(null);
   const [trends, setTrends] = useState<Record<string, string> | null>(null);
+  const [metricTips, setMetricTips] = useState<Record<string, string> | null>(null);
   const [insightLoading, setInsightLoading] = useState(false);
 
   useEffect(() => {
