@@ -133,6 +133,23 @@ const Index = () => {
 
     // Check if we should show the feedback popup
     await checkFeedbackEligibility();
+
+    // Show paywall if credits are now 0
+    const { data: updatedProfile } = await supabase
+      .from("profiles")
+      .select("credits")
+      .eq("id", user.id)
+      .single();
+
+    if (updatedProfile && updatedProfile.credits <= 0) {
+      const { count } = await supabase
+        .from("sessions")
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", user.id);
+      if ((count || 0) >= 3) {
+        setShowPaywall(true);
+      }
+    }
   };
 
   return (
