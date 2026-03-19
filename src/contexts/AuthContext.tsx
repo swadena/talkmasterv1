@@ -42,12 +42,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const fetchCredits = async (userId: string) => {
     const { data } = await supabase
       .from("profiles")
-      .select("credits, credits_expire_at")
+      .select("credits, credits_expire_at, founding_user")
       .eq("id", userId)
       .single();
     if (data) {
       setCredits(data.credits);
       setCreditsExpireAt(data.credits_expire_at ? new Date(data.credits_expire_at) : null);
+      setFoundingUser((data as any).founding_user ?? false);
     }
   };
 
