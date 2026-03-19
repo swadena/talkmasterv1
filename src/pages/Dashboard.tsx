@@ -79,6 +79,7 @@ const Dashboard = () => {
         if (!error && data) {
           setInsight(data.insight);
           setTrends(data.trends);
+          setMetricTips(data.metricTips);
         }
       } catch (e) {
         console.error("Insight fetch failed:", e);
