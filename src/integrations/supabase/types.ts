@@ -20,6 +20,8 @@ export type Database = {
           credits: number
           credits_expire_at: string | null
           email: string | null
+          feedback_reward_claimed: boolean
+          feedback_skipped_once: boolean
           has_purchased: boolean
           id: string
           referral_code: string
@@ -30,6 +32,8 @@ export type Database = {
           credits?: number
           credits_expire_at?: string | null
           email?: string | null
+          feedback_reward_claimed?: boolean
+          feedback_skipped_once?: boolean
           has_purchased?: boolean
           id: string
           referral_code?: string
@@ -40,6 +44,8 @@ export type Database = {
           credits?: number
           credits_expire_at?: string | null
           email?: string | null
+          feedback_reward_claimed?: boolean
+          feedback_skipped_once?: boolean
           has_purchased?: boolean
           id?: string
           referral_code?: string
