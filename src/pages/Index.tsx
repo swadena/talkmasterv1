@@ -9,6 +9,7 @@ import RecordingScreen from "@/components/screens/RecordingScreen";
 import FeedbackScreen from "@/components/screens/FeedbackScreen";
 import SummaryScreen from "@/components/screens/SummaryScreen";
 import FeedbackRewardPopup from "@/components/FeedbackRewardPopup";
+import PaywallPopup from "@/components/PaywallPopup";
 import { toast } from "@/hooks/use-toast";
 
 export type AppScreen = "home" | "daily_intro" | "recording" | "feedback" | "summary";
