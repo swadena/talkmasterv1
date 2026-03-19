@@ -49,6 +49,7 @@ const Dashboard = () => {
   const [selectedSession, setSelectedSession] = useState<SessionRecord | null>(null);
   const [insight, setInsight] = useState<string | null>(null);
   const [trends, setTrends] = useState<Record<string, string> | null>(null);
+  const [metricTips, setMetricTips] = useState<Record<string, string> | null>(null);
   const [insightLoading, setInsightLoading] = useState(false);
 
   useEffect(() => {
@@ -78,6 +79,7 @@ const Dashboard = () => {
         if (!error && data) {
           setInsight(data.insight);
           setTrends(data.trends);
+          setMetricTips(data.metricTips);
         }
       } catch (e) {
         console.error("Insight fetch failed:", e);
@@ -273,7 +275,9 @@ const Dashboard = () => {
                           </div>
                           <span className="tabular-nums text-xs font-medium text-foreground w-8 text-right">{s.avg}</span>
                         </div>
-                        <p className="ml-0 mt-1 text-[10px] leading-relaxed text-muted-foreground/70">{SKILL_HINTS[s.key]}</p>
+                        <p className="ml-0 mt-1 text-[10px] leading-relaxed text-muted-foreground/70">
+                          {metricTips?.[s.key] || SKILL_HINTS[s.key]}
+                        </p>
                       </div>
                     ))}
                   </div>
