@@ -6,6 +6,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import CreditPackages from "@/components/CreditPackages";
 import ReferralSection from "@/components/ReferralSection";
+import InsightSummary from "@/components/dashboard/InsightSummary";
+import TrendIndicator from "@/components/dashboard/TrendIndicator";
 
 interface SessionRecord {
   id: string;
@@ -27,6 +29,15 @@ const SKILL_LABELS: Record<string, string> = {
   filler_words: "Filler Words",
 };
 
+const SKILL_HINTS: Record<string, string> = {
+  clarity: "How clearly you express your main points",
+  logic: "How well your arguments follow a logical structure",
+  evidence: "How effectively you support claims with examples",
+  confidence: "How assured and decisive your delivery sounds",
+  pacing: "How well you manage your speaking speed and pauses",
+  filler_words: "How well you avoid um, uh, like, and other fillers",
+};
+
 type Tab = "progress" | "history" | "credits" | "referrals" | "account";
 
 const Dashboard = () => {
@@ -36,6 +47,9 @@ const Dashboard = () => {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<Tab>("progress");
   const [selectedSession, setSelectedSession] = useState<SessionRecord | null>(null);
+  const [insight, setInsight] = useState<string | null>(null);
+  const [trends, setTrends] = useState<Record<string, string> | null>(null);
+  const [insightLoading, setInsightLoading] = useState(false);
 
   useEffect(() => {
     if (!user) {
@@ -53,6 +67,26 @@ const Dashboard = () => {
     };
     fetchSessions();
   }, [user, navigate]);
+
+  // Fetch AI insights when sessions load
+  useEffect(() => {
+    if (sessions.length < 2 || !user) return;
+    const fetchInsight = async () => {
+      setInsightLoading(true);
+      try {
+        const { data, error } = await supabase.functions.invoke("generate-insight");
+        if (!error && data) {
+          setInsight(data.insight);
+          setTrends(data.trends);
+        }
+      } catch (e) {
+        console.error("Insight fetch failed:", e);
+      } finally {
+        setInsightLoading(false);
+      }
+    };
+    fetchInsight();
+  }, [sessions.length, user]);
 
   const totalSessions = sessions.length;
   const avgScore = totalSessions
@@ -206,6 +240,9 @@ const Dashboard = () => {
           <div className="flex-1 overflow-y-auto px-6 pb-8">
             {activeTab === "progress" && (
               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="mt-6 flex flex-col gap-5">
+                {/* AI Insight Summary */}
+                <InsightSummary insight={insight} loading={insightLoading} />
+
                 {/* Stats */}
                 <div className="grid grid-cols-3 gap-3">
                   <div className="rounded-2xl bg-surface p-3 text-center card-depth">
@@ -222,17 +259,21 @@ const Dashboard = () => {
                   </div>
                 </div>
 
-                {/* Skill Breakdown */}
+                {/* Skill Breakdown with trends */}
                 <div className="rounded-3xl bg-surface p-5 card-depth">
                   <h3 className="text-sm font-semibold text-foreground mb-4">Skill Breakdown</h3>
                   <div className="flex flex-col gap-3">
                     {skillAverages.map((s) => (
-                      <div key={s.key} className="flex items-center gap-3">
-                        <span className="w-24 text-xs text-foreground">{s.label}</span>
-                        <div className="flex-1 h-2 rounded-full bg-background overflow-hidden">
-                          <div className="h-full rounded-full bg-primary" style={{ width: `${(s.avg / 10) * 100}%` }} />
+                      <div key={s.key}>
+                        <div className="flex items-center gap-2">
+                          <span className="w-20 text-xs text-foreground">{s.label}</span>
+                          {trends && trends[s.key] && <TrendIndicator trend={trends[s.key]} />}
+                          <div className="flex-1 h-2 rounded-full bg-background overflow-hidden">
+                            <div className="h-full rounded-full bg-primary" style={{ width: `${(s.avg / 10) * 100}%` }} />
+                          </div>
+                          <span className="tabular-nums text-xs font-medium text-foreground w-8 text-right">{s.avg}</span>
                         </div>
-                        <span className="tabular-nums text-xs font-medium text-foreground w-8 text-right">{s.avg}</span>
+                        <p className="ml-0 mt-1 text-[10px] leading-relaxed text-muted-foreground/70">{SKILL_HINTS[s.key]}</p>
                       </div>
                     ))}
                   </div>
