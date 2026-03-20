@@ -158,8 +158,8 @@ RULES:
     }
 
     const userMessage = transcript?.trim()
-      ? `The user just said:\n\n"${transcript}"\n\nGenerate a ${questionType} follow-up question that directly responds to what they said.`
-      : `The user hasn't said anything clear yet. Ask a natural opening question for a ${mode} session. Use this as a starting point: "${fallbackPrompts[mode]}" — but rephrase it naturally.`;
+      ? `The user just said:\n\n"${transcript}"\n\nRespond with a single ${questionType} follow-up. Keep it short and natural.`
+      : `The user hasn't said anything clear yet. Ask a simple, friendly opening question for a ${mode} session. Something like: "${fallbackPrompts[mode]}" — but in your own words.`;
 
     const response = await fetch(
       "https://ai.gateway.lovable.dev/v1/chat/completions",
