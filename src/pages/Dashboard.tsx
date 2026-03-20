@@ -75,9 +75,9 @@ const Dashboard = () => {
     fetchSessions();
   }, [user, navigate]);
 
-  // Fetch AI insights when sessions load
+  // Fetch AI insights when sessions load - now works after ANY session
   useEffect(() => {
-    if (sessions.length < 2 || !user) return;
+    if (sessions.length < 1 || !user) return;
     const fetchInsight = async () => {
       setInsightLoading(true);
       try {
