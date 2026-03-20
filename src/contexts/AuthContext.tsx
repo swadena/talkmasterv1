@@ -9,6 +9,7 @@ interface AuthContextType {
   creditsExpireAt: Date | null;
   daysUntilExpiry: number | null;
   foundingUser: boolean;
+  hasPurchased: boolean;
   refreshCredits: () => Promise<void>;
   deductCredit: () => Promise<boolean>;
   signOut: () => Promise<void>;
