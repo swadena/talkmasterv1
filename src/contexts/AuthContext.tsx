@@ -37,7 +37,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [creditsExpireAt, setCreditsExpireAt] = useState<Date | null>(null);
   const [foundingUser, setFoundingUser] = useState(false);
   const [hasPurchased, setHasPurchased] = useState(false);
-  const [foundingUser, setFoundingUser] = useState(false);
 
   const daysUntilExpiry = creditsExpireAt
     ? Math.max(0, Math.ceil((creditsExpireAt.getTime() - Date.now()) / (1000 * 60 * 60 * 24)))
