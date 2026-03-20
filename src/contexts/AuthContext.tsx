@@ -10,6 +10,8 @@ interface AuthContextType {
   daysUntilExpiry: number | null;
   foundingUser: boolean;
   hasPurchased: boolean;
+  isPremiumOverride: boolean;
+  setIsPremiumOverride: (v: boolean) => void;
   refreshCredits: () => Promise<void>;
   deductCredit: () => Promise<boolean>;
   signOut: () => Promise<void>;
@@ -23,6 +25,8 @@ const AuthContext = createContext<AuthContextType>({
   daysUntilExpiry: null,
   foundingUser: false,
   hasPurchased: false,
+  isPremiumOverride: false,
+  setIsPremiumOverride: () => {},
   refreshCredits: async () => {},
   deductCredit: async () => false,
   signOut: async () => {},
@@ -37,6 +41,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [creditsExpireAt, setCreditsExpireAt] = useState<Date | null>(null);
   const [foundingUser, setFoundingUser] = useState(false);
   const [hasPurchased, setHasPurchased] = useState(false);
+  const [isPremiumOverride, setIsPremiumOverrideState] = useState(() => {
+    return localStorage.getItem("premium_override") === "true";
+  });
+
+  const setIsPremiumOverride = (v: boolean) => {
+    setIsPremiumOverrideState(v);
+    localStorage.setItem("premium_override", String(v));
+  };
 
   const daysUntilExpiry = creditsExpireAt
     ? Math.max(0, Math.ceil((creditsExpireAt.getTime() - Date.now()) / (1000 * 60 * 60 * 24)))
@@ -129,7 +141,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, loading, credits, creditsExpireAt, daysUntilExpiry, foundingUser, hasPurchased, refreshCredits, deductCredit, signOut }}>
+    <AuthContext.Provider value={{ user, loading, credits, creditsExpireAt, daysUntilExpiry, foundingUser, hasPurchased, isPremiumOverride, setIsPremiumOverride, refreshCredits, deductCredit, signOut }}>
       {children}
     </AuthContext.Provider>
   );
