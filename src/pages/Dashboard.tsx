@@ -9,6 +9,8 @@ import CreditPackages from "@/components/CreditPackages";
 import ReferralSection from "@/components/ReferralSection";
 import InsightSummary from "@/components/dashboard/InsightSummary";
 import TrendIndicator from "@/components/dashboard/TrendIndicator";
+import SkillLevelBadge from "@/components/dashboard/SkillLevelBadge";
+import LockedInsightOverlay from "@/components/dashboard/LockedInsightOverlay";
 
 interface SessionRecord {
   id: string;
