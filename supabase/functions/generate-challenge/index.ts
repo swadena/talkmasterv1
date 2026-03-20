@@ -89,10 +89,19 @@ serve(async (req) => {
     const persona = scenarioPersonas[mode] || scenarioPersonas.debate;
     const guidance = questionGuidance[mode] || questionGuidance.debate;
 
-    // Alternate: rounds 0,1,2 = light, round 3 = deep, rounds 4,5 = light, round 6 = deep, etc.
-    const isDeepRound = roundNumber > 0 && roundNumber % 3 === 0;
-    const questionType = isDeepRound ? "deep" : "light";
-    const questionInstruction = isDeepRound ? guidance.deep : guidance.light;
+    // Progressive difficulty: warmup → explore → deeper
+    let questionType: string;
+    let questionInstruction: string;
+    if (roundNumber <= 2) {
+      questionType = "warmup";
+      questionInstruction = guidance.warmup;
+    } else if (roundNumber >= 6) {
+      questionType = "deeper";
+      questionInstruction = guidance.deeper;
+    } else {
+      questionType = "explore";
+      questionInstruction = guidance.explore;
+    }
 
     const previousContext = previousChallenges?.length
       ? `\n\nQuestions already asked (do NOT repeat or rephrase these):\n${previousChallenges.map((c: string, i: number) => `${i + 1}. ${c}`).join("\n")}`
@@ -104,13 +113,29 @@ serve(async (req) => {
 
     const systemPrompt = `${persona}
 
-IMPORTANT RULES:
-- Generate exactly ONE question. No preamble, no "Great point!" — just the question itself.
-- The question must sound like something a real person would say in conversation.
-- Keep it to 1-2 sentences maximum.
-- This is round ${roundNumber + 1}. This should be a ${questionType} question.
+CONVERSATION STYLE:
+- Be clear and easy to understand
+- Keep questions short — max 1-2 sentences
+- Use simple, direct wording — avoid academic or complex language
+- Sound like a real person, not a quiz show host
+
+BEHAVIOR:
+- Do NOT challenge every response
+- Balance between: supportive (acknowledge good points), curious (ask for more detail), challenging (only when it adds real value)
+- If the answer is decent → ask a simple follow-up
+- If the answer is unclear → gently ask for clarification
+- If the answer is strong → explore a bit deeper
+- Only challenge when it genuinely adds value
+
+THIS IS ROUND ${roundNumber + 1}. Phase: ${questionType}.
 - ${questionInstruction}
-- Never repeat or closely rephrase a previous question.${previousContext}${dailyTopicContext}`;
+
+RULES:
+- Return ONLY one clear, natural question. Nothing else.
+- No preamble like "Great point!" or "That's interesting!"
+- No multiple questions in one response
+- Keep it under 10 seconds of speech when read aloud
+- Never repeat or closely rephrase a previous question${previousContext}${dailyTopicContext}`;
 
     // Detect repeat/restate requests for daily challenge
     const repeatPhrases = [
