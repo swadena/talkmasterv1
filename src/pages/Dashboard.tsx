@@ -249,7 +249,17 @@ const Dashboard = () => {
             {activeTab === "progress" && (
               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="mt-6 flex flex-col gap-5">
                 {/* AI Insight Summary */}
-                <InsightSummary insight={insight} loading={insightLoading} />
+                {isPremium ? (
+                  <InsightSummary insight={insight} loading={insightLoading} />
+                ) : (
+                  insight || insightLoading ? (
+                    <LockedInsightOverlay previewText={insight ? insight.split(" ").slice(0, 7).join(" ") + "..." : "Your speaking performance shows strong clarity and..."}>
+                      <p className="text-xs text-muted-foreground leading-relaxed">
+                        {insight || "Your speaking performance shows strong clarity and confidence. Focus on reducing filler words for even more impact."}
+                      </p>
+                    </LockedInsightOverlay>
+                  ) : null
+                )}
 
                 {/* Stats */}
                 <div className="grid grid-cols-3 gap-3">
@@ -267,7 +277,7 @@ const Dashboard = () => {
                   </div>
                 </div>
 
-                {/* Skill Breakdown with trends */}
+                {/* Skill Breakdown with levels */}
                 <div className="rounded-3xl bg-surface p-5 card-depth">
                   <h3 className="text-sm font-semibold text-foreground mb-4">Skill Breakdown</h3>
                   <div className="flex flex-col gap-3">
@@ -275,18 +285,28 @@ const Dashboard = () => {
                       <div key={s.key}>
                         <div className="flex items-center gap-2">
                           <span className="w-20 text-xs text-foreground">{s.label}</span>
-                          {trends && trends[s.key] && <TrendIndicator trend={trends[s.key]} />}
+                          <SkillLevelBadge score={s.avg} />
+                          {isPremium && trends && trends[s.key] && <TrendIndicator trend={trends[s.key]} />}
                           <div className="flex-1 h-2 rounded-full bg-background overflow-hidden">
                             <div className="h-full rounded-full bg-primary" style={{ width: `${(s.avg / 10) * 100}%` }} />
                           </div>
                           <span className="tabular-nums text-xs font-medium text-foreground w-8 text-right">{s.avg}</span>
                         </div>
-                        <p className="ml-0 mt-1 text-[10px] leading-relaxed text-muted-foreground/70">
-                          {metricTips?.[s.key] || SKILL_HINTS[s.key]}
-                        </p>
+                        {isPremium ? (
+                          <p className="ml-0 mt-1 text-[10px] leading-relaxed text-muted-foreground/70">
+                            {metricTips?.[s.key] || SKILL_HINTS[s.key]}
+                          </p>
+                        ) : null}
                       </div>
                     ))}
                   </div>
+                  {!isPremium && (
+                    <LockedInsightOverlay previewText="Your clarity has improved by 15% over the last...">
+                      <div className="flex flex-col gap-2 mt-3">
+                        <p className="text-xs text-muted-foreground">Trend analysis and personalized tips for each skill...</p>
+                      </div>
+                    </LockedInsightOverlay>
+                  )}
                 </div>
               </motion.div>
             )}
