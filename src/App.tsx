@@ -10,6 +10,7 @@ import Dashboard from "./pages/Dashboard.tsx";
 import ResetPassword from "./pages/ResetPassword.tsx";
 import ChangePassword from "./pages/ChangePassword.tsx";
 import NotFound from "./pages/NotFound.tsx";
+import Admin from "./pages/Admin.tsx";
 
 const queryClient = new QueryClient();
 
