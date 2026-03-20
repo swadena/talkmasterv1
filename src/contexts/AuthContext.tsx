@@ -10,6 +10,8 @@ interface AuthContextType {
   daysUntilExpiry: number | null;
   foundingUser: boolean;
   hasPurchased: boolean;
+  isPremiumOverride: boolean;
+  setIsPremiumOverride: (v: boolean) => void;
   refreshCredits: () => Promise<void>;
   deductCredit: () => Promise<boolean>;
   signOut: () => Promise<void>;
