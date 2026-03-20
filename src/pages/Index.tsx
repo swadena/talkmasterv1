@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { AnimatePresence } from "framer-motion";
 import { useAuth } from "@/contexts/AuthContext";
@@ -10,6 +10,7 @@ import FeedbackScreen from "@/components/screens/FeedbackScreen";
 import SummaryScreen from "@/components/screens/SummaryScreen";
 import FeedbackRewardPopup from "@/components/FeedbackRewardPopup";
 import PaywallPopup from "@/components/PaywallPopup";
+import SessionExitDialog from "@/components/SessionExitDialog";
 import { toast } from "@/hooks/use-toast";
 
 export type AppScreen = "home" | "daily_intro" | "recording" | "feedback" | "summary";
@@ -32,8 +33,12 @@ const Index = () => {
   const [dailyTopic, setDailyTopic] = useState<string>("");
   const [showFeedbackPopup, setShowFeedbackPopup] = useState(false);
   const [showPaywall, setShowPaywall] = useState(false);
+  const [showExitDialog, setShowExitDialog] = useState(false);
+  const [pendingExitAction, setPendingExitAction] = useState<(() => void) | null>(null);
+  const startingRef = useRef(false);
+  const creditDeductedRef = useRef(false);
 
-  const handleStart = (selectedMode: PracticeMode) => {
+  const handleStart = async (selectedMode: PracticeMode) => {
     if (!user) {
       navigate("/auth");
       return;
@@ -42,6 +47,16 @@ const Index = () => {
       setShowPaywall(true);
       return;
     }
+    if (startingRef.current) return;
+    startingRef.current = true;
+
+    const success = await deductCredit();
+    if (!success) {
+      startingRef.current = false;
+      toast({ title: "Could not start session", description: "Please try again.", variant: "destructive" });
+      return;
+    }
+    creditDeductedRef.current = true;
 
     setMode(selectedMode);
     setTranscript("");
@@ -54,6 +69,24 @@ const Index = () => {
       setSessionStart(Date.now());
       setScreen("recording");
     }
+    startingRef.current = false;
+  };
+
+  const attemptSessionExit = (exitAction: () => void) => {
+    setPendingExitAction(() => exitAction);
+    setShowExitDialog(true);
+  };
+
+  const confirmExit = () => {
+    setShowExitDialog(false);
+    creditDeductedRef.current = false;
+    if (pendingExitAction) pendingExitAction();
+    setPendingExitAction(null);
+  };
+
+  const cancelExit = () => {
+    setShowExitDialog(false);
+    setPendingExitAction(null);
   };
 
   const handleRecordingStop = (recordedTranscript: string) => {
@@ -69,7 +102,6 @@ const Index = () => {
 
   const checkFeedbackEligibility = async () => {
     if (!user) return;
-
     try {
       const { data: profile } = await supabase
         .from("profiles")
@@ -80,8 +112,6 @@ const Index = () => {
       if (!profile) return;
       const claimed = (profile as any).feedback_reward_claimed;
       const skippedOnce = (profile as any).feedback_skipped_once;
-
-      // Already claimed — never show again
       if (claimed) return;
 
       const { count } = await supabase
@@ -90,14 +120,11 @@ const Index = () => {
         .eq("user_id", user.id);
 
       const sessionCount = count || 0;
-
-      // Show after 2nd session, or after 3rd if skipped once
       if (sessionCount === 2 && !skippedOnce) {
         setShowFeedbackPopup(true);
       } else if (sessionCount === 3 && skippedOnce) {
         setShowFeedbackPopup(true);
       }
-      // After 3rd session, never show again
     } catch (e) {
       console.error("Feedback eligibility check failed:", e);
     }
@@ -106,7 +133,7 @@ const Index = () => {
   const handleSessionComplete = async (assessment: { scores: Record<string, number>; feedback: Record<string, string>; tips: string[] } | null) => {
     if (!user) return;
 
-    await deductCredit();
+    // Credit already deducted at session start
 
     if (assessment) {
       const overallScore = Math.round(
@@ -124,12 +151,10 @@ const Index = () => {
       }]);
     }
 
+    creditDeductedRef.current = false;
     await refreshCredits();
-
-    // Check if we should show the feedback popup
     await checkFeedbackEligibility();
 
-    // Show paywall if credits are now 0
     const { data: updatedProfile } = await supabase
       .from("profiles")
       .select("credits")
@@ -149,9 +174,7 @@ const Index = () => {
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background">
-      {/* Mobile frame */}
       <div className="relative mx-auto h-[812px] w-[375px] overflow-hidden rounded-4xl border border-border bg-background shadow-2xl">
-        {/* Status bar */}
         <div className="absolute top-0 left-0 right-0 z-50 flex items-center justify-between px-8 pt-3 pb-1">
           <span className="text-xs font-medium text-foreground">9:41</span>
           <div className="flex items-center gap-1">
@@ -160,8 +183,6 @@ const Index = () => {
             </div>
           </div>
         </div>
-
-        {/* Notch */}
         <div className="absolute top-0 left-1/2 -translate-x-1/2 z-50 w-[120px] h-[30px] bg-background rounded-b-2xl" />
 
         <AnimatePresence mode="wait">
@@ -176,7 +197,7 @@ const Index = () => {
                 setSessionStart(Date.now());
                 setScreen("recording");
               }}
-              onBack={() => setScreen("home")}
+              onBack={() => attemptSessionExit(() => setScreen("home"))}
             />
           )}
           {screen === "recording" && (
@@ -186,11 +207,11 @@ const Index = () => {
               sessionStart={sessionStart}
               skipCountdown={mode === "daily_challenge"}
               onStop={handleRecordingStop}
-              onBack={() => setScreen("home")}
+              onBack={() => attemptSessionExit(() => setScreen("home"))}
             />
           )}
           {screen === "feedback" && (
-          <FeedbackScreen
+            <FeedbackScreen
               key="feedback"
               mode={mode}
               sessionStart={sessionStart}
@@ -198,7 +219,7 @@ const Index = () => {
               initialConversationLog={conversationLog}
               dailyTopic={dailyTopic}
               onFinish={handleFeedbackFinish}
-              onBack={() => setScreen("recording")}
+              onBack={() => attemptSessionExit(() => setScreen("home"))}
             />
           )}
           {screen === "summary" && (
@@ -207,22 +228,24 @@ const Index = () => {
               mode={mode}
               conversationLog={conversationLog}
               onNewSession={() => setScreen("home")}
-              onBack={() => setScreen("feedback")}
+              onBack={() => setScreen("home")}
               onSessionComplete={handleSessionComplete}
             />
           )}
         </AnimatePresence>
 
-        {/* Feedback reward popup */}
         <FeedbackRewardPopup
           open={showFeedbackPopup}
           onClose={() => setShowFeedbackPopup(false)}
         />
-
-        {/* Paywall popup */}
         <PaywallPopup
           open={showPaywall}
           onClose={() => setShowPaywall(false)}
+        />
+        <SessionExitDialog
+          open={showExitDialog}
+          onContinue={cancelExit}
+          onExit={confirmExit}
         />
       </div>
     </div>
