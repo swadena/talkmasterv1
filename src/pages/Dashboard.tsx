@@ -301,11 +301,14 @@ const Dashboard = () => {
                     ))}
                   </div>
                   {!isPremium && (
-                    <LockedInsightOverlay previewText="Your clarity has improved by 15% over the last...">
-                      <div className="flex flex-col gap-2 mt-3">
-                        <p className="text-xs text-muted-foreground">Trend analysis and personalized tips for each skill...</p>
-                      </div>
-                    </LockedInsightOverlay>
+                    <div className="mt-4 flex justify-center">
+                      <button
+                        onClick={() => navigate("/dashboard?tab=credits")}
+                        className="rounded-xl bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground transition-transform active:scale-95"
+                      >
+                        Unlock full insights
+                      </button>
+                    </div>
                   )}
                 </div>
               </motion.div>
