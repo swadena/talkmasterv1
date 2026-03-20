@@ -46,8 +46,8 @@ type Tab = "progress" | "history" | "credits" | "referrals" | "account";
 const Dashboard = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { user, credits, signOut, refreshCredits, daysUntilExpiry, foundingUser } = useAuth();
-  const isPremium = foundingUser || (user ? true : false); // premium = has_purchased or founding_user
+  const { user, credits, signOut, refreshCredits, daysUntilExpiry, foundingUser, hasPurchased } = useAuth();
+  const isPremium = hasPurchased || foundingUser;
   const [sessions, setSessions] = useState<SessionRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const initialTab = (searchParams.get("tab") as Tab) || "progress";
