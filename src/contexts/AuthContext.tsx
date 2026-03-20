@@ -25,6 +25,8 @@ const AuthContext = createContext<AuthContextType>({
   daysUntilExpiry: null,
   foundingUser: false,
   hasPurchased: false,
+  isPremiumOverride: false,
+  setIsPremiumOverride: () => {},
   refreshCredits: async () => {},
   deductCredit: async () => false,
   signOut: async () => {},
