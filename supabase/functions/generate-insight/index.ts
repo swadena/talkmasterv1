@@ -71,7 +71,7 @@ serve(async (req) => {
     let insight: string | null = null;
     let metricTips: Record<string, string> | null = null;
 
-    if (lovableApiKey && recent.length >= 2) {
+    if (lovableApiKey && recent.length >= 1) {
       try {
         const aiRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
           method: "POST",
