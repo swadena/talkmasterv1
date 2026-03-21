@@ -115,7 +115,7 @@ const SummaryScreen = ({ mode, conversationLog, onNewSession, onBack, onSessionC
       animate={{ y: 0 }}
       exit={{ y: "100%" }}
       transition={{ duration: 0.4, ease: [0.2, 0, 0, 1] }}
-      className="flex h-full flex-col px-6 pt-14 pb-8 overflow-y-auto"
+      className="flex min-h-[100dvh] md:min-h-0 h-full flex-col px-6 pt-8 pb-8 overflow-y-auto"
     >
       {/* Header */}
       <div className="flex items-center gap-3">
@@ -244,13 +244,13 @@ const SummaryScreen = ({ mode, conversationLog, onNewSession, onBack, onSessionC
           <div className="flex flex-col gap-3 mt-4">
             <button
               onClick={onNewSession}
-              className="h-14 w-full rounded-2xl bg-foreground text-background font-medium ease-presence transition-transform active:scale-95 will-change-transform"
+              className="h-14 w-full rounded-2xl bg-foreground text-background font-medium ease-presence transition-transform active:scale-95 hover:opacity-90 will-change-transform"
             >
               Start New Session
             </button>
             <button
               onClick={() => navigate("/dashboard")}
-              className="h-12 w-full rounded-2xl bg-surface text-foreground text-sm font-medium ease-presence transition-transform active:scale-95"
+              className="h-12 w-full rounded-2xl bg-surface text-foreground text-sm font-medium ease-presence transition-transform active:scale-95 hover:bg-accent"
             >
               Go to Dashboard
             </button>

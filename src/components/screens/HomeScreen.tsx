@@ -47,7 +47,7 @@ const HomeScreen = ({ onStart }: HomeScreenProps) => {
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       transition={{ duration: 0.25, ease: [0.2, 0, 0, 1] }}
-      className="flex h-full flex-col px-6 pt-14 pb-8"
+      className="flex min-h-[100dvh] md:min-h-0 h-full flex-col px-6 pt-10 pb-8 md:pt-8"
     >
       {/* Top bar with logo, credits, and profile */}
       <div className="mt-4 flex items-center justify-between">
@@ -82,11 +82,11 @@ const HomeScreen = ({ onStart }: HomeScreenProps) => {
       </div>
 
       {/* Greeting */}
-      <div className="mt-12">
-        <h1 className="text-3xl font-semibold leading-tight text-foreground text-pretty">
+      <div className="mt-8 md:mt-10">
+        <h1 className="text-3xl md:text-4xl font-semibold leading-tight text-foreground text-pretty">
           What are we<br />practicing today?
         </h1>
-        <p className="mt-2 text-sm text-muted-foreground">
+        <p className="mt-2 text-sm md:text-base text-muted-foreground">
           {user ? "Choose a mode to start your session" : "Sign in to start practicing"}
         </p>
       </div>
@@ -109,7 +109,7 @@ const HomeScreen = ({ onStart }: HomeScreenProps) => {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 + i * 0.06, duration: 0.3, ease: [0.2, 0, 0, 1] }}
             onClick={() => onStart(mode.id)}
-            className="card-depth flex items-center gap-4 rounded-3xl bg-surface p-4 text-left ease-presence transition-transform duration-250 active:scale-[0.97] will-change-transform"
+            className="card-depth flex items-center gap-4 rounded-3xl bg-surface p-4 text-left ease-presence transition-transform duration-250 active:scale-[0.97] hover:bg-accent will-change-transform"
           >
             <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10">
               <mode.icon className="h-5 w-5 text-primary" />
@@ -132,7 +132,7 @@ const HomeScreen = ({ onStart }: HomeScreenProps) => {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 + modes.length * 0.06, duration: 0.3, ease: [0.2, 0, 0, 1] }}
           onClick={() => onStart("daily_challenge")}
-          className="card-depth flex items-center gap-4 rounded-3xl bg-surface p-4 text-left ease-presence transition-transform duration-250 active:scale-[0.97] will-change-transform border border-primary/20"
+          className="card-depth flex items-center gap-4 rounded-3xl bg-surface p-4 text-left ease-presence transition-transform duration-250 active:scale-[0.97] hover:bg-accent will-change-transform border border-primary/20"
         >
           <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/20">
             <Flame className="h-5 w-5 text-primary" />
@@ -154,7 +154,7 @@ const HomeScreen = ({ onStart }: HomeScreenProps) => {
       {!user ? (
         <button
           onClick={() => navigate("/auth")}
-          className="h-12 w-full rounded-2xl bg-primary text-primary-foreground font-medium ease-presence transition-transform active:scale-95"
+          className="h-12 w-full rounded-2xl bg-primary text-primary-foreground font-medium ease-presence transition-transform active:scale-95 hover:opacity-90"
         >
           Sign In to Start
         </button>

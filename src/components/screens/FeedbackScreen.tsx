@@ -332,7 +332,7 @@ const FeedbackScreen = ({ mode, sessionStart, initialTranscript, initialConversa
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       transition={{ duration: 0.25, ease: [0.2, 0, 0, 1] }}
-      className="relative flex h-full flex-col"
+      className="relative flex h-[100dvh] flex-col"
     >
       <VideoAvatar state={avatarState} />
 
