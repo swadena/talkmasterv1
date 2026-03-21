@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { AnimatePresence } from "framer-motion";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
+import ResponsiveShell from "@/components/ResponsiveShell";
 import HomeScreen from "@/components/screens/HomeScreen";
 import DailyChallengeIntroScreen from "@/components/screens/DailyChallengeIntroScreen";
 import RecordingScreen from "@/components/screens/RecordingScreen";
@@ -37,6 +38,8 @@ const Index = () => {
   const [pendingExitAction, setPendingExitAction] = useState<(() => void) | null>(null);
   const startingRef = useRef(false);
   const creditDeductedRef = useRef(false);
+
+  const isSessionScreen = screen === "recording" || screen === "feedback" || screen === "daily_intro";
 
   const handleStart = async (selectedMode: PracticeMode) => {
     if (!user) {
@@ -133,8 +136,6 @@ const Index = () => {
   const handleSessionComplete = async (assessment: { scores: Record<string, number>; feedback: Record<string, string>; tips: string[] } | null) => {
     if (!user) return;
 
-    // Credit already deducted at session start
-
     if (assessment) {
       const overallScore = Math.round(
         Object.values(assessment.scores).reduce((s, v) => s + (v / 10) * 100, 0) / Object.keys(assessment.scores).length
@@ -173,82 +174,70 @@ const Index = () => {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background">
-      <div className="relative mx-auto h-[812px] w-[375px] overflow-hidden rounded-4xl border border-border bg-background shadow-2xl">
-        <div className="absolute top-0 left-0 right-0 z-50 flex items-center justify-between px-8 pt-3 pb-1">
-          <span className="text-xs font-medium text-foreground">9:41</span>
-          <div className="flex items-center gap-1">
-            <div className="h-2.5 w-4 rounded-sm border border-foreground/40 relative">
-              <div className="absolute inset-[2px] right-[3px] rounded-[1px] bg-foreground/60" />
-            </div>
-          </div>
-        </div>
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 z-50 w-[120px] h-[30px] bg-background rounded-b-2xl" />
+    <ResponsiveShell fullscreen={isSessionScreen}>
+      <AnimatePresence mode="wait">
+        {screen === "home" && (
+          <HomeScreen key="home" onStart={handleStart} />
+        )}
+        {screen === "daily_intro" && (
+          <DailyChallengeIntroScreen
+            key="daily_intro"
+            onReady={(topic) => {
+              setDailyTopic(topic);
+              setSessionStart(Date.now());
+              setScreen("recording");
+            }}
+            onBack={() => attemptSessionExit(() => setScreen("home"))}
+          />
+        )}
+        {screen === "recording" && (
+          <RecordingScreen
+            key="recording"
+            mode={mode}
+            sessionStart={sessionStart}
+            skipCountdown={mode === "daily_challenge"}
+            onStop={handleRecordingStop}
+            onBack={() => attemptSessionExit(() => setScreen("home"))}
+          />
+        )}
+        {screen === "feedback" && (
+          <FeedbackScreen
+            key="feedback"
+            mode={mode}
+            sessionStart={sessionStart}
+            initialTranscript={transcript}
+            initialConversationLog={conversationLog}
+            dailyTopic={dailyTopic}
+            onFinish={handleFeedbackFinish}
+            onBack={() => attemptSessionExit(() => setScreen("home"))}
+          />
+        )}
+        {screen === "summary" && (
+          <SummaryScreen
+            key="summary"
+            mode={mode}
+            conversationLog={conversationLog}
+            onNewSession={() => setScreen("home")}
+            onBack={() => setScreen("home")}
+            onSessionComplete={handleSessionComplete}
+          />
+        )}
+      </AnimatePresence>
 
-        <AnimatePresence mode="wait">
-          {screen === "home" && (
-            <HomeScreen key="home" onStart={handleStart} />
-          )}
-          {screen === "daily_intro" && (
-            <DailyChallengeIntroScreen
-              key="daily_intro"
-              onReady={(topic) => {
-                setDailyTopic(topic);
-                setSessionStart(Date.now());
-                setScreen("recording");
-              }}
-              onBack={() => attemptSessionExit(() => setScreen("home"))}
-            />
-          )}
-          {screen === "recording" && (
-            <RecordingScreen
-              key="recording"
-              mode={mode}
-              sessionStart={sessionStart}
-              skipCountdown={mode === "daily_challenge"}
-              onStop={handleRecordingStop}
-              onBack={() => attemptSessionExit(() => setScreen("home"))}
-            />
-          )}
-          {screen === "feedback" && (
-            <FeedbackScreen
-              key="feedback"
-              mode={mode}
-              sessionStart={sessionStart}
-              initialTranscript={transcript}
-              initialConversationLog={conversationLog}
-              dailyTopic={dailyTopic}
-              onFinish={handleFeedbackFinish}
-              onBack={() => attemptSessionExit(() => setScreen("home"))}
-            />
-          )}
-          {screen === "summary" && (
-            <SummaryScreen
-              key="summary"
-              mode={mode}
-              conversationLog={conversationLog}
-              onNewSession={() => setScreen("home")}
-              onBack={() => setScreen("home")}
-              onSessionComplete={handleSessionComplete}
-            />
-          )}
-        </AnimatePresence>
-
-        <FeedbackRewardPopup
-          open={showFeedbackPopup}
-          onClose={() => setShowFeedbackPopup(false)}
-        />
-        <PaywallPopup
-          open={showPaywall}
-          onClose={() => setShowPaywall(false)}
-        />
-        <SessionExitDialog
-          open={showExitDialog}
-          onContinue={cancelExit}
-          onExit={confirmExit}
-        />
-      </div>
-    </div>
+      <FeedbackRewardPopup
+        open={showFeedbackPopup}
+        onClose={() => setShowFeedbackPopup(false)}
+      />
+      <PaywallPopup
+        open={showPaywall}
+        onClose={() => setShowPaywall(false)}
+      />
+      <SessionExitDialog
+        open={showExitDialog}
+        onContinue={cancelExit}
+        onExit={confirmExit}
+      />
+    </ResponsiveShell>
   );
 };
 

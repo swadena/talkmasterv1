@@ -154,7 +154,7 @@ const HomeScreen = ({ onStart }: HomeScreenProps) => {
       {!user ? (
         <button
           onClick={() => navigate("/auth")}
-          className="h-12 w-full rounded-2xl bg-primary text-primary-foreground font-medium ease-presence transition-transform active:scale-95"
+          className="h-12 w-full rounded-2xl bg-primary text-primary-foreground font-medium ease-presence transition-transform active:scale-95 hover:opacity-90"
         >
           Sign In to Start
         </button>
