@@ -25,6 +25,7 @@ export type Database = {
           founding_user: boolean
           has_purchased: boolean
           id: string
+          is_admin: boolean
           referral_code: string
           referred_by: string | null
         }
@@ -38,6 +39,7 @@ export type Database = {
           founding_user?: boolean
           has_purchased?: boolean
           id: string
+          is_admin?: boolean
           referral_code?: string
           referred_by?: string | null
         }
@@ -51,6 +53,7 @@ export type Database = {
           founding_user?: boolean
           has_purchased?: boolean
           id?: string
+          is_admin?: boolean
           referral_code?: string
           referred_by?: string | null
         }
@@ -151,6 +154,7 @@ export type Database = {
     }
     Functions: {
       deduct_credit: { Args: never; Returns: boolean }
+      is_admin: { Args: never; Returns: boolean }
       set_referred_by: { Args: { _referrer_id: string }; Returns: undefined }
     }
     Enums: {
