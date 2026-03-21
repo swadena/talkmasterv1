@@ -5,25 +5,23 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
-const ADMIN_EMAILS = ["maimoonaswadena@gmail.com"];
-
 const Admin = () => {
   const navigate = useNavigate();
-  const { user, credits, loading, isPremiumOverride, setIsPremiumOverride } = useAuth();
+  const { user, credits, loading, isAdmin, isPremiumOverride, setIsPremiumOverride } = useAuth();
   const [checked, setChecked] = useState(false);
 
   useEffect(() => {
     if (loading) return;
-    if (!user || !ADMIN_EMAILS.includes(user.email ?? "")) {
+    if (!user || !isAdmin) {
       navigate("/");
     }
-  }, [user, loading, navigate]);
+  }, [user, loading, isAdmin, navigate]);
 
   useEffect(() => {
     setChecked(isPremiumOverride);
   }, [isPremiumOverride]);
 
-  if (loading || !user || !ADMIN_EMAILS.includes(user.email ?? "")) {
+  if (loading || !user || !isAdmin) {
     return null;
   }
 
@@ -60,7 +58,7 @@ const Admin = () => {
             />
           </div>
           <p className="text-xs text-muted-foreground mt-2">
-            When ON, all premium features are unlocked regardless of payment status.
+            When ON, all premium features are unlocked regardless of payment status. This is an in-memory toggle for this session only.
           </p>
         </CardContent>
       </Card>

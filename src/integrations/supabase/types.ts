@@ -150,7 +150,8 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      deduct_credit: { Args: never; Returns: boolean }
+      set_referred_by: { Args: { _referrer_id: string }; Returns: undefined }
     }
     Enums: {
       [_ in never]: never

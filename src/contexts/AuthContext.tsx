@@ -2,6 +2,8 @@ import { createContext, useContext, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { User } from "@supabase/supabase-js";
 
+const ADMIN_EMAILS = ["maimoonaswadena@gmail.com"];
+
 interface AuthContextType {
   user: User | null;
   loading: boolean;
@@ -10,6 +12,7 @@ interface AuthContextType {
   daysUntilExpiry: number | null;
   foundingUser: boolean;
   hasPurchased: boolean;
+  isAdmin: boolean;
   isPremiumOverride: boolean;
   setIsPremiumOverride: (v: boolean) => void;
   refreshCredits: () => Promise<void>;
@@ -25,6 +28,7 @@ const AuthContext = createContext<AuthContextType>({
   daysUntilExpiry: null,
   foundingUser: false,
   hasPurchased: false,
+  isAdmin: false,
   isPremiumOverride: false,
   setIsPremiumOverride: () => {},
   refreshCredits: async () => {},
@@ -41,13 +45,15 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [creditsExpireAt, setCreditsExpireAt] = useState<Date | null>(null);
   const [foundingUser, setFoundingUser] = useState(false);
   const [hasPurchased, setHasPurchased] = useState(false);
-  const [isPremiumOverride, setIsPremiumOverrideState] = useState(() => {
-    return localStorage.getItem("premium_override") === "true";
-  });
+  // Premium override is now in-memory only and gated behind admin email check
+  const [isPremiumOverride, setIsPremiumOverrideState] = useState(false);
+
+  const isAdmin = !!user && ADMIN_EMAILS.includes(user.email ?? "");
 
   const setIsPremiumOverride = (v: boolean) => {
+    // Only allow admins to set the override
+    if (!isAdmin) return;
     setIsPremiumOverrideState(v);
-    localStorage.setItem("premium_override", String(v));
   };
 
   const daysUntilExpiry = creditsExpireAt
@@ -74,13 +80,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const deductCredit = async (): Promise<boolean> => {
     if (!user || credits <= 0) return false;
-    const newCredits = credits - 1;
-    const { error } = await supabase
-      .from("profiles")
-      .update({ credits: newCredits })
-      .eq("id", user.id);
-    if (error) return false;
-    setCredits(newCredits);
+    const { data, error } = await supabase.rpc("deduct_credit");
+    if (error || !data) return false;
+    setCredits((prev) => Math.max(0, prev - 1));
     return true;
   };
 
@@ -88,6 +90,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     await supabase.auth.signOut();
     setUser(null);
     setCredits(0);
+    setIsPremiumOverrideState(false);
   };
 
   const linkReferral = async (userId: string) => {
@@ -95,7 +98,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     if (!pendingRef) return;
     localStorage.removeItem("pending_referral");
 
-    // Look up the referrer by referral_code
     const { data: referrer } = await supabase
       .from("profiles")
       .select("id")
@@ -104,18 +106,19 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
     if (!referrer || referrer.id === userId) return;
 
-    // Set referred_by on the new user's profile
-    await supabase
-      .from("profiles")
-      .update({ referred_by: referrer.id })
-      .eq("id", userId);
+    // Use secure RPC to set referred_by
+    await supabase.rpc("set_referred_by", { _referrer_id: referrer.id });
 
-    // Create the referral record
     await supabase.from("referrals").insert([{
       referrer_id: referrer.id,
       referred_id: userId,
     }]);
   };
+
+  useEffect(() => {
+    // Clean up old localStorage key if it exists
+    localStorage.removeItem("premium_override");
+  }, []);
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
@@ -141,7 +144,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, loading, credits, creditsExpireAt, daysUntilExpiry, foundingUser, hasPurchased, isPremiumOverride, setIsPremiumOverride, refreshCredits, deductCredit, signOut }}>
+    <AuthContext.Provider value={{ user, loading, credits, creditsExpireAt, daysUntilExpiry, foundingUser, hasPurchased, isAdmin, isPremiumOverride, setIsPremiumOverride, refreshCredits, deductCredit, signOut }}>
       {children}
     </AuthContext.Provider>
   );
