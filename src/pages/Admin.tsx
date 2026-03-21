@@ -11,17 +11,17 @@ const Admin = () => {
   const [checked, setChecked] = useState(false);
 
   useEffect(() => {
-    if (loading) return;
+    if (loading || adminLoading) return;
     if (!user || !isAdmin) {
       navigate("/");
     }
-  }, [user, loading, isAdmin, navigate]);
+  }, [user, loading, adminLoading, isAdmin, navigate]);
 
   useEffect(() => {
     setChecked(isPremiumOverride);
   }, [isPremiumOverride]);
 
-  if (loading || !user || !isAdmin) {
+  if (loading || adminLoading || !user || !isAdmin) {
     return null;
   }
 
