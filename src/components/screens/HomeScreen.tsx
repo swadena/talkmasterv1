@@ -132,7 +132,7 @@ const HomeScreen = ({ onStart }: HomeScreenProps) => {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 + modes.length * 0.06, duration: 0.3, ease: [0.2, 0, 0, 1] }}
           onClick={() => onStart("daily_challenge")}
-          className="card-depth flex items-center gap-4 rounded-3xl bg-surface p-4 text-left ease-presence transition-transform duration-250 active:scale-[0.97] will-change-transform border border-primary/20"
+          className="card-depth flex items-center gap-4 rounded-3xl bg-surface p-4 text-left ease-presence transition-transform duration-250 active:scale-[0.97] hover:bg-accent will-change-transform border border-primary/20"
         >
           <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/20">
             <Flame className="h-5 w-5 text-primary" />
