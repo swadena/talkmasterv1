@@ -46,6 +46,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [foundingUser, setFoundingUser] = useState(false);
   const [hasPurchased, setHasPurchased] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [adminLoading, setAdminLoading] = useState(true);
   // Premium override is now in-memory only and gated behind server-side admin check
   const [isPremiumOverride, setIsPremiumOverrideState] = useState(false);
 
