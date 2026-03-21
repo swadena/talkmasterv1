@@ -1,14 +1,18 @@
 import { useRef, useState, useCallback, useEffect } from "react";
 
 /**
- * Browser-only TTS hook using a consistent male English voice.
- * Handles mobile unlock and Chrome Android long-utterance bug.
+ * Browser-only TTS hook with mobile safety.
+ * - Unlocks speechSynthesis on first user gesture (mobile requirement)
+ * - Chrome Android heartbeat to prevent 15s cutoff
+ * - Safety timeout: if onend never fires, resolves after estimated duration
+ *   so the session never freezes
  */
 export function useTextToSpeech() {
   const [isSpeaking, setIsSpeaking] = useState(false);
   const cachedVoiceRef = useRef<SpeechSynthesisVoice | null>(null);
   const unlockedRef = useRef(false);
   const resumeIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const safetyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Ensure voices are loaded (they load async in many browsers)
   useEffect(() => {
@@ -67,6 +71,13 @@ export function useTextToSpeech() {
     }
   }, []);
 
+  const clearSafetyTimer = useCallback(() => {
+    if (safetyTimerRef.current) {
+      clearTimeout(safetyTimerRef.current);
+      safetyTimerRef.current = null;
+    }
+  }, []);
+
   const speak = useCallback(
     (text: string): Promise<void> => {
       return new Promise((resolve) => {
@@ -76,6 +87,17 @@ export function useTextToSpeech() {
         }
         window.speechSynthesis.cancel();
         clearResumeInterval();
+        clearSafetyTimer();
+
+        let resolved = false;
+        const finish = () => {
+          if (resolved) return;
+          resolved = true;
+          setIsSpeaking(false);
+          clearResumeInterval();
+          clearSafetyTimer();
+          resolve();
+        };
 
         const utterance = new SpeechSynthesisUtterance(text);
         utterance.rate = 0.92;
@@ -84,27 +106,39 @@ export function useTextToSpeech() {
         const voice = getVoice();
         if (voice) utterance.voice = voice;
 
-        utterance.onend = () => {
-          setIsSpeaking(false);
-          clearResumeInterval();
-          resolve();
-        };
+        utterance.onend = finish;
         utterance.onerror = (e) => {
-          // "interrupted" fires when we cancel intentionally — not a real error
           if (e.error === "interrupted") {
-            setIsSpeaking(false);
-            clearResumeInterval();
-            resolve();
+            finish();
             return;
           }
           console.warn("TTS error:", e.error);
-          setIsSpeaking(false);
-          clearResumeInterval();
-          resolve();
+          finish();
         };
 
         setIsSpeaking(true);
         window.speechSynthesis.speak(utterance);
+
+        // Safety timeout: estimate ~80ms per character at 0.92 rate, plus 3s buffer.
+        // If onend never fires (common on mobile), we still resolve so the session
+        // doesn't freeze.
+        const estimatedMs = Math.max(3000, (text.length * 80) / 0.92 + 3000);
+        safetyTimerRef.current = setTimeout(() => {
+          if (!resolved) {
+            console.warn("TTS safety timeout reached — forcing resolve");
+            window.speechSynthesis.cancel();
+            finish();
+          }
+        }, estimatedMs);
+
+        // Also detect if speech never actually started (mobile silent failure).
+        // After 2s, if speechSynthesis is not speaking, resolve immediately.
+        setTimeout(() => {
+          if (!resolved && !window.speechSynthesis.speaking && !window.speechSynthesis.pending) {
+            console.warn("TTS never started speaking — forcing resolve");
+            finish();
+          }
+        }, 2000);
 
         // Chrome Android bug: speechSynthesis pauses after ~15s.
         // Periodic resume() keeps it alive.
@@ -116,7 +150,7 @@ export function useTextToSpeech() {
         }, 10000);
       });
     },
-    [getVoice, clearResumeInterval]
+    [getVoice, clearResumeInterval, clearSafetyTimer]
   );
 
   const cancel = useCallback(() => {
@@ -124,8 +158,9 @@ export function useTextToSpeech() {
       window.speechSynthesis.cancel();
     }
     clearResumeInterval();
+    clearSafetyTimer();
     setIsSpeaking(false);
-  }, [clearResumeInterval]);
+  }, [clearResumeInterval, clearSafetyTimer]);
 
   return { speak, cancel, isSpeaking, isSupported: "speechSynthesis" in window };
 }
