@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ChevronLeft, Volume2, Mic, MicOff, CheckCircle, AlertTriangle, Shield } from "lucide-react";
+import { ChevronLeft, Volume2, VolumeX, Mic, MicOff, CheckCircle, AlertTriangle, Shield } from "lucide-react";
 import { useTextToSpeech } from "@/hooks/useTextToSpeech";
 import type { PracticeMode } from "@/pages/Index";
 
@@ -11,10 +11,10 @@ interface SessionSetupScreenProps {
 }
 
 type MicStatus = "idle" | "requesting" | "granted" | "denied" | "error";
+type AudioStatus = "idle" | "testing" | "success" | "failed";
 
 const SessionSetupScreen = ({ mode, onReady, onBack }: SessionSetupScreenProps) => {
-  const [speakerTested, setSpeakerTested] = useState(false);
-  const [speakerPlaying, setSpeakerPlaying] = useState(false);
+  const [speakerStatus, setSpeakerStatus] = useState<AudioStatus>("idle");
   const [micStatus, setMicStatus] = useState<MicStatus>("idle");
   const [micLevel, setMicLevel] = useState(0);
   const [micTested, setMicTested] = useState(false);
@@ -26,7 +26,6 @@ const SessionSetupScreen = ({ mode, onReady, onBack }: SessionSetupScreenProps) 
 
   const modeLabel = mode.charAt(0).toUpperCase() + mode.slice(1);
 
-  // Check HTTPS
   useEffect(() => {
     const isSecure =
       window.location.protocol === "https:" ||
@@ -35,7 +34,6 @@ const SessionSetupScreen = ({ mode, onReady, onBack }: SessionSetupScreenProps) 
     setHttpsOk(isSecure);
   }, []);
 
-  // Cleanup on unmount
   useEffect(() => {
     return () => {
       streamRef.current?.getTracks().forEach((t) => t.stop());
@@ -45,11 +43,15 @@ const SessionSetupScreen = ({ mode, onReady, onBack }: SessionSetupScreenProps) 
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleTestSpeaker = async () => {
-    setSpeakerPlaying(true);
-    // Unlock audio + speak test phrase
-    await tts.speak("Hello! I'm your practice coach. If you can hear me, your audio is working great.");
-    setSpeakerPlaying(false);
-    setSpeakerTested(true);
+    setSpeakerStatus("testing");
+    // Unlock audio context on this user gesture
+    const success = await tts.testAudio("Hello! I'm your practice coach. If you can hear me, your audio is working great.");
+    setSpeakerStatus(success ? "success" : "failed");
+  };
+
+  const handleEnableTextOnly = () => {
+    tts.enableTextOnlyMode();
+    setSpeakerStatus("success"); // Allow proceeding in text-only mode
   };
 
   const handleTestMic = async () => {
@@ -61,7 +63,6 @@ const SessionSetupScreen = ({ mode, onReady, onBack }: SessionSetupScreenProps) 
       streamRef.current = stream;
       setMicStatus("granted");
 
-      // Set up analyser for level meter
       const audioCtx = new AudioContext();
       const source = audioCtx.createMediaStreamSource(stream);
       const analyser = audioCtx.createAnalyser();
@@ -83,7 +84,6 @@ const SessionSetupScreen = ({ mode, onReady, onBack }: SessionSetupScreenProps) 
       };
       tick();
 
-      // Auto-stop after 5 seconds
       setTimeout(() => {
         stream.getTracks().forEach((t) => t.stop());
         cancelAnimationFrame(animFrameRef.current);
@@ -102,7 +102,8 @@ const SessionSetupScreen = ({ mode, onReady, onBack }: SessionSetupScreenProps) 
     }
   };
 
-  const allReady = speakerTested && micTested && httpsOk;
+  const speakerOk = speakerStatus === "success";
+  const allReady = speakerOk && micTested && httpsOk;
 
   return (
     <motion.div
@@ -112,10 +113,8 @@ const SessionSetupScreen = ({ mode, onReady, onBack }: SessionSetupScreenProps) 
       transition={{ duration: 0.25, ease: [0.2, 0, 0, 1] }}
       className="flex h-full flex-col bg-background"
     >
-      {/* Status bar spacer */}
       <div className="pt-14" />
 
-      {/* Top bar */}
       <div className="flex items-center justify-between px-6">
         <button
           onClick={onBack}
@@ -127,7 +126,6 @@ const SessionSetupScreen = ({ mode, onReady, onBack }: SessionSetupScreenProps) 
         <div className="w-10" />
       </div>
 
-      {/* Content */}
       <div className="flex-1 px-6 pt-8 flex flex-col gap-6">
         <div>
           <h2 className="text-2xl font-semibold text-foreground">Before we begin</h2>
@@ -136,7 +134,6 @@ const SessionSetupScreen = ({ mode, onReady, onBack }: SessionSetupScreenProps) 
           </p>
         </div>
 
-        {/* HTTPS Warning */}
         {!httpsOk && (
           <div className="flex items-start gap-3 rounded-2xl bg-destructive/10 p-4">
             <Shield className="h-5 w-5 text-destructive mt-0.5 flex-shrink-0" />
@@ -154,10 +151,12 @@ const SessionSetupScreen = ({ mode, onReady, onBack }: SessionSetupScreenProps) 
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className={`flex h-10 w-10 items-center justify-center rounded-2xl ${
-                speakerTested ? "bg-success/20" : "bg-primary/10"
+                speakerOk ? "bg-success/20" : speakerStatus === "failed" ? "bg-destructive/20" : "bg-primary/10"
               }`}>
-                {speakerTested ? (
+                {speakerOk ? (
                   <CheckCircle className="h-5 w-5 text-success" />
+                ) : speakerStatus === "failed" ? (
+                  <VolumeX className="h-5 w-5 text-destructive" />
                 ) : (
                   <Volume2 className="h-5 w-5 text-primary" />
                 )}
@@ -165,24 +164,60 @@ const SessionSetupScreen = ({ mode, onReady, onBack }: SessionSetupScreenProps) 
               <div>
                 <p className="text-sm font-medium text-foreground">Speaker</p>
                 <p className="text-xs text-muted-foreground">
-                  {speakerTested ? "Audio working" : "Test your audio output"}
+                  {speakerOk && tts.textOnlyMode
+                    ? "Text-only mode"
+                    : speakerOk
+                    ? "🔊 Sound On"
+                    : speakerStatus === "failed"
+                    ? "Audio not working"
+                    : "Test your audio output"}
                 </p>
               </div>
             </div>
             <button
               onClick={handleTestSpeaker}
-              disabled={speakerPlaying}
+              disabled={speakerStatus === "testing"}
               className={`rounded-full px-4 py-2 text-xs font-medium ease-presence transition-all active:scale-95 ${
-                speakerTested
+                speakerOk
                   ? "bg-success/10 text-success"
-                  : speakerPlaying
+                  : speakerStatus === "testing"
                   ? "bg-primary/20 text-primary animate-pulse"
+                  : speakerStatus === "failed"
+                  ? "bg-destructive text-destructive-foreground"
                   : "bg-primary text-primary-foreground"
               }`}
             >
-              {speakerPlaying ? "Playing..." : speakerTested ? "✓ Done" : "Test Sound"}
+              {speakerStatus === "testing"
+                ? "Playing..."
+                : speakerOk
+                ? "✓ Done"
+                : speakerStatus === "failed"
+                ? "Retry"
+                : "Test Sound"}
             </button>
           </div>
+
+          {/* Audio failed - show options */}
+          {speakerStatus === "failed" && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="mt-3 flex flex-col gap-2"
+            >
+              <div className="flex items-start gap-2 rounded-xl bg-destructive/10 p-3">
+                <AlertTriangle className="h-4 w-4 text-destructive mt-0.5 flex-shrink-0" />
+                <p className="text-[11px] text-destructive/80 leading-relaxed">
+                  Audio is not working on your device. Please check your browser settings or tap to enable sound.
+                </p>
+              </div>
+              <button
+                onClick={handleEnableTextOnly}
+                className="rounded-xl bg-muted px-4 py-2.5 text-xs font-medium text-foreground transition-transform active:scale-95"
+              >
+                Continue with text only (no voice)
+              </button>
+            </motion.div>
+          )}
         </div>
 
         {/* Microphone Test */}
@@ -240,7 +275,6 @@ const SessionSetupScreen = ({ mode, onReady, onBack }: SessionSetupScreenProps) 
             </button>
           </div>
 
-          {/* Mic level indicator */}
           {micStatus === "granted" && (
             <motion.div
               initial={{ opacity: 0, height: 0 }}
@@ -265,7 +299,6 @@ const SessionSetupScreen = ({ mode, onReady, onBack }: SessionSetupScreenProps) 
             </motion.div>
           )}
 
-          {/* Permission denied help */}
           {micStatus === "denied" && (
             <motion.div
               initial={{ opacity: 0 }}
@@ -279,7 +312,6 @@ const SessionSetupScreen = ({ mode, onReady, onBack }: SessionSetupScreenProps) 
             </motion.div>
           )}
 
-          {/* No input detected help */}
           {micStatus === "error" && !micTested && (
             <motion.div
               initial={{ opacity: 0 }}
@@ -314,7 +346,9 @@ const SessionSetupScreen = ({ mode, onReady, onBack }: SessionSetupScreenProps) 
             animate={{ opacity: 1 }}
             className="text-center text-[10px] text-muted-foreground mt-2"
           >
-            Everything looks good! Tap to begin.
+            {tts.textOnlyMode
+              ? "Text-only mode — questions will be shown on screen."
+              : "Everything looks good! Tap to begin."}
           </motion.p>
         )}
       </div>
