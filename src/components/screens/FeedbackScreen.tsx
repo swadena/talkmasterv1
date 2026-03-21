@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ChevronLeft, CheckCircle, Loader2, RefreshCw, SkipForward, ArrowRight } from "lucide-react";
+import { ChevronLeft, CheckCircle, Loader2, RefreshCw, SkipForward, ArrowRight, Volume2, VolumeX } from "lucide-react";
 import MicStatusIndicator from "@/components/MicStatusIndicator";
 import VideoAvatar from "@/components/VideoAvatar";
 import { useSpeechToText } from "@/hooks/useSpeechToText";
@@ -39,7 +39,7 @@ const fallbackPrompts: Record<string, string[]> = {
   ],
 };
 
-const SESSION_MAX = 900; // 15 minutes
+const SESSION_MAX = 900;
 
 interface FeedbackScreenProps {
   mode: PracticeMode;
@@ -99,7 +99,6 @@ const FeedbackScreen = ({ mode, sessionStart, initialTranscript, initialConversa
     } else if (phase === "fallback") {
       // don't reset
     } else {
-      // Accumulate paused time when leaving thinking/fallback
       if (thinkingStartRef.current > 0) {
         pausedTimeRef.current += Date.now() - thinkingStartRef.current;
         thinkingStartRef.current = 0;
@@ -107,7 +106,7 @@ const FeedbackScreen = ({ mode, sessionStart, initialTranscript, initialConversa
     }
   }, [phase]);
 
-  // Auto-fallback after 12 seconds of thinking (cold-start + AI response needs time)
+  // Auto-fallback after 12 seconds of thinking
   useEffect(() => {
     if (phase === "thinking" && thinkingElapsed >= 12) {
       setPhase("fallback");
@@ -132,7 +131,7 @@ const FeedbackScreen = ({ mode, sessionStart, initialTranscript, initialConversa
   const generateChallenge = useCallback(
     async (transcript: string) => {
       try {
-      const { data, error } = await supabase.functions.invoke("generate-challenge", {
+        const { data, error } = await supabase.functions.invoke("generate-challenge", {
           body: { transcript, mode, previousChallenges, roundNumber: round, dailyTopic },
         });
 
@@ -153,13 +152,12 @@ const FeedbackScreen = ({ mode, sessionStart, initialTranscript, initialConversa
     return list[Math.floor(Math.random() * list.length)];
   }, [mode, previousChallenges]);
 
-  // Farewell: speak farewell then finish
+  // Farewell
   const startFarewell = useCallback(async () => {
     setPhase("farewell");
     setCurrentPrompt(FAREWELL_MESSAGE);
     conversationLogRef.current.push({ role: "challenge", text: FAREWELL_MESSAGE, round: round + 1 });
     await tts.speak(FAREWELL_MESSAGE);
-    // Auto-finish after farewell
     onFinish(conversationLogRef.current);
   }, [round, tts, onFinish]);
 
@@ -167,7 +165,6 @@ const FeedbackScreen = ({ mode, sessionStart, initialTranscript, initialConversa
   const handleRetry = useCallback(() => {
     setPhase("thinking");
     setThinkingElapsed(0);
-    // Re-trigger the round effect by bumping a retry counter
     setRetryCount((c) => c + 1);
   }, []);
 
@@ -176,7 +173,6 @@ const FeedbackScreen = ({ mode, sessionStart, initialTranscript, initialConversa
     setCurrentPrompt(prompt);
     setPreviousChallenges((prev) => [...prev, prompt]);
     conversationLogRef.current.push({ role: "challenge", text: prompt, round: round + 1 });
-    // Accumulate paused time
     if (thinkingStartRef.current > 0) {
       pausedTimeRef.current += Date.now() - thinkingStartRef.current;
       thinkingStartRef.current = 0;
@@ -191,7 +187,6 @@ const FeedbackScreen = ({ mode, sessionStart, initialTranscript, initialConversa
   }, [getFallback, round, tts, stt]);
 
   const handleContinueWithoutFeedback = useCallback(() => {
-    // Accumulate paused time
     if (thinkingStartRef.current > 0) {
       pausedTimeRef.current += Date.now() - thinkingStartRef.current;
       thinkingStartRef.current = 0;
@@ -214,7 +209,6 @@ const FeedbackScreen = ({ mode, sessionStart, initialTranscript, initialConversa
       const result = await generateChallenge(transcript);
       if (cancelled || phaseRef.current !== "thinking") return;
 
-      // Handle exit intent
       if (result?.exitIntent) {
         if (!exitAssuranceAsked) {
           setExitAssuranceAsked(true);
@@ -279,7 +273,6 @@ const FeedbackScreen = ({ mode, sessionStart, initialTranscript, initialConversa
       const userResponse = text || stt.transcript;
       latestTranscriptRef.current = userResponse;
 
-      // Log user response
       conversationLogRef.current.push({
         role: "user",
         text: userResponse,
@@ -296,7 +289,6 @@ const FeedbackScreen = ({ mode, sessionStart, initialTranscript, initialConversa
     const userResponse = text || stt.transcript;
     latestTranscriptRef.current = userResponse;
 
-    // Log user response
     conversationLogRef.current.push({
       role: "user",
       text: userResponse,
@@ -317,6 +309,12 @@ const FeedbackScreen = ({ mode, sessionStart, initialTranscript, initialConversa
     tts.cancel();
     stt.stop();
     onBack();
+  };
+
+  const handleReplay = async () => {
+    if (tts.lastSpokenText) {
+      await tts.replay();
+    }
   };
 
   const formatTime = (s: number) => {
@@ -355,6 +353,22 @@ const FeedbackScreen = ({ mode, sessionStart, initialTranscript, initialConversa
         </div>
 
         <div className="flex items-center gap-2">
+          {/* Sound status indicator */}
+          <button
+            onClick={tts.textOnlyMode ? () => tts.disableTextOnlyMode() : undefined}
+            className="flex items-center gap-1 rounded-full bg-background/20 px-2 py-0.5 backdrop-blur-md"
+            title={tts.textOnlyMode ? "Text-only mode — tap to try audio again" : "Sound On"}
+          >
+            {tts.textOnlyMode ? (
+              <VolumeX className="h-3 w-3 text-foreground/50" />
+            ) : (
+              <Volume2 className="h-3 w-3 text-foreground/50" />
+            )}
+            <span className="text-[9px] font-medium text-foreground/50">
+              {tts.textOnlyMode ? "Text" : "Sound"}
+            </span>
+          </button>
+
           {round > 0 && (
             <span className="rounded-full bg-background/20 px-2.5 py-0.5 text-[10px] font-medium text-foreground/60 backdrop-blur-md">
               Round {round + 1}
@@ -396,6 +410,11 @@ const FeedbackScreen = ({ mode, sessionStart, initialTranscript, initialConversa
               <p className="text-center text-xl font-medium text-foreground text-pretty">
                 "{currentPrompt}"
               </p>
+              {tts.textOnlyMode && (
+                <p className="text-center text-[10px] text-foreground/40 mt-2">
+                  📖 Text-only mode
+                </p>
+              )}
             </motion.div>
           )}
           {phase === "thinking" && (
@@ -486,14 +505,30 @@ const FeedbackScreen = ({ mode, sessionStart, initialTranscript, initialConversa
           ) : null}
         </AnimatePresence>
 
-        {/* Finish Session */}
-        <button
-          onClick={handleFinish}
-          className="mt-2 flex items-center gap-1.5 rounded-full bg-background/20 px-4 py-2 backdrop-blur-md ease-presence transition-transform active:scale-95"
-        >
-          <CheckCircle className="h-3.5 w-3.5 text-success" />
-          <span className="text-xs font-medium text-foreground/70">Finish Session</span>
-        </button>
+        {/* Replay + Finish row */}
+        <div className="flex items-center gap-3 mt-2">
+          {/* Replay last question button */}
+          {tts.lastSpokenText && phase !== "thinking" && (
+            <button
+              onClick={handleReplay}
+              disabled={tts.isSpeaking}
+              className="flex items-center gap-1.5 rounded-full bg-background/20 px-3 py-2 backdrop-blur-md ease-presence transition-transform active:scale-95"
+              title="Replay last question"
+            >
+              <Volume2 className="h-3.5 w-3.5 text-foreground/60" />
+              <span className="text-xs font-medium text-foreground/60">Replay</span>
+            </button>
+          )}
+
+          {/* Finish Session */}
+          <button
+            onClick={handleFinish}
+            className="flex items-center gap-1.5 rounded-full bg-background/20 px-4 py-2 backdrop-blur-md ease-presence transition-transform active:scale-95"
+          >
+            <CheckCircle className="h-3.5 w-3.5 text-success" />
+            <span className="text-xs font-medium text-foreground/70">Finish Session</span>
+          </button>
+        </div>
       </div>
     </motion.div>
   );
