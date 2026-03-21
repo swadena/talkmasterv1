@@ -60,7 +60,9 @@ serve(async (req) => {
       });
     }
 
-    const voice = voiceId || DEFAULT_VOICE_ID;
+    // Validate voiceId to prevent URL path injection
+    const VOICE_ID_REGEX = /^[a-zA-Z0-9]{15,25}$/;
+    const voice = (voiceId && VOICE_ID_REGEX.test(voiceId)) ? voiceId : DEFAULT_VOICE_ID;
 
     const response = await fetch(
       `https://api.elevenlabs.io/v1/text-to-speech/${voice}?output_format=mp3_44100_128`,
