@@ -133,6 +133,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         setUser(u);
         if (u) {
           fetchCredits(u.id);
+          fetchAdminStatus();
           linkReferral(u.id);
         }
         setLoading(false);
