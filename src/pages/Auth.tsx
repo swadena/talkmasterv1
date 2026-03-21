@@ -94,7 +94,8 @@ const Auth = () => {
       } else if (isLogin) {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
-        navigate("/");
+        const onboardingDone = localStorage.getItem("onboarding_complete");
+        navigate(onboardingDone ? "/" : "/onboarding");
       } else {
         const { error, data } = await supabase.auth.signUp({
           email,
