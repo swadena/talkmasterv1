@@ -2,8 +2,6 @@ import { createContext, useContext, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { User } from "@supabase/supabase-js";
 
-const ADMIN_EMAILS = ["maimoonaswadena@gmail.com"];
-
 interface AuthContextType {
   user: User | null;
   loading: boolean;
@@ -45,10 +43,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [creditsExpireAt, setCreditsExpireAt] = useState<Date | null>(null);
   const [foundingUser, setFoundingUser] = useState(false);
   const [hasPurchased, setHasPurchased] = useState(false);
-  // Premium override is now in-memory only and gated behind admin email check
+  const [isAdmin, setIsAdmin] = useState(false);
+  // Premium override is now in-memory only and gated behind server-side admin check
   const [isPremiumOverride, setIsPremiumOverrideState] = useState(false);
-
-  const isAdmin = !!user && ADMIN_EMAILS.includes(user.email ?? "");
 
   const setIsPremiumOverride = (v: boolean) => {
     // Only allow admins to set the override
