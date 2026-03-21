@@ -2,11 +2,13 @@ import { useRef, useState, useCallback, useEffect } from "react";
 
 /**
  * Browser-only TTS hook using a consistent male English voice.
- * No external API keys required.
+ * Handles mobile unlock and Chrome Android long-utterance bug.
  */
 export function useTextToSpeech() {
   const [isSpeaking, setIsSpeaking] = useState(false);
   const cachedVoiceRef = useRef<SpeechSynthesisVoice | null>(null);
+  const unlockedRef = useRef(false);
+  const resumeIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // Ensure voices are loaded (they load async in many browsers)
   useEffect(() => {
@@ -20,8 +22,25 @@ export function useTextToSpeech() {
     return () => window.speechSynthesis.removeEventListener("voiceschanged", loadVoices);
   }, []);
 
+  // Unlock speechSynthesis on first user interaction (required on mobile)
+  useEffect(() => {
+    if (!("speechSynthesis" in window)) return;
+    const unlock = () => {
+      if (unlockedRef.current) return;
+      const utterance = new SpeechSynthesisUtterance("");
+      utterance.volume = 0;
+      window.speechSynthesis.speak(utterance);
+      unlockedRef.current = true;
+    };
+    document.addEventListener("touchstart", unlock, { once: true });
+    document.addEventListener("click", unlock, { once: true });
+    return () => {
+      document.removeEventListener("touchstart", unlock);
+      document.removeEventListener("click", unlock);
+    };
+  }, []);
+
   const pickVoice = (voices: SpeechSynthesisVoice[]) => {
-    // Strictly enforce a consistent male voice — never allow female voices
     const femalePattern = /\b(female|woman|girl|zira|hazel|susan|linda|samantha|karen|moira|fiona|tessa|alice|amelie|anna|carmit|damayanti|ioana|joana|kanya|kyoko|lana|laura|lekha|luciana|mariska|mei-jia|melina|milena|monica|nora|paulina|sara|satu|sin-ji|ting-ting|yelda|yuna)\b/i;
     const malePattern = /\b(male|man|daniel|james|thomas|google uk english male|aaron|alex|arthur|fred|lee|oliver|rishi|jorge|diego|luca|jacques)\b/i;
 
@@ -41,6 +60,13 @@ export function useTextToSpeech() {
     return cachedVoiceRef.current;
   }, []);
 
+  const clearResumeInterval = useCallback(() => {
+    if (resumeIntervalRef.current) {
+      clearInterval(resumeIntervalRef.current);
+      resumeIntervalRef.current = null;
+    }
+  }, []);
+
   const speak = useCallback(
     (text: string): Promise<void> => {
       return new Promise((resolve) => {
@@ -49,6 +75,7 @@ export function useTextToSpeech() {
           return;
         }
         window.speechSynthesis.cancel();
+        clearResumeInterval();
 
         const utterance = new SpeechSynthesisUtterance(text);
         utterance.rate = 0.92;
@@ -59,26 +86,46 @@ export function useTextToSpeech() {
 
         utterance.onend = () => {
           setIsSpeaking(false);
+          clearResumeInterval();
           resolve();
         };
-        utterance.onerror = () => {
+        utterance.onerror = (e) => {
+          // "interrupted" fires when we cancel intentionally — not a real error
+          if (e.error === "interrupted") {
+            setIsSpeaking(false);
+            clearResumeInterval();
+            resolve();
+            return;
+          }
+          console.warn("TTS error:", e.error);
           setIsSpeaking(false);
+          clearResumeInterval();
           resolve();
         };
 
         setIsSpeaking(true);
         window.speechSynthesis.speak(utterance);
+
+        // Chrome Android bug: speechSynthesis pauses after ~15s.
+        // Periodic resume() keeps it alive.
+        resumeIntervalRef.current = setInterval(() => {
+          if (window.speechSynthesis.speaking && !window.speechSynthesis.paused) {
+            window.speechSynthesis.pause();
+            window.speechSynthesis.resume();
+          }
+        }, 10000);
       });
     },
-    [getVoice]
+    [getVoice, clearResumeInterval]
   );
 
   const cancel = useCallback(() => {
     if ("speechSynthesis" in window) {
       window.speechSynthesis.cancel();
     }
+    clearResumeInterval();
     setIsSpeaking(false);
-  }, []);
+  }, [clearResumeInterval]);
 
   return { speak, cancel, isSpeaking, isSupported: "speechSynthesis" in window };
 }
