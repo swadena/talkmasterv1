@@ -21,6 +21,7 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType>({
   user: null,
+  adminLoading: true,
   loading: true,
   credits: 0,
   creditsExpireAt: null,
