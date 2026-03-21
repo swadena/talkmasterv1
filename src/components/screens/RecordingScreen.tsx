@@ -29,8 +29,12 @@ const RecordingScreen = ({ mode, sessionStart, skipCountdown, onStop, onBack }: 
 
   const remaining = MAX_DURATION - elapsed;
 
-  // Start STT immediately if skipping countdown
+  // Check STT support and start if skipping countdown
   useEffect(() => {
+    if (!stt.isSupported) {
+      setSttUnsupported(true);
+      return;
+    }
     if (skipCountdown) {
       stt.start();
     }
