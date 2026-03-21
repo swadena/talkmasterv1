@@ -48,9 +48,18 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [isPremiumOverride, setIsPremiumOverrideState] = useState(false);
 
   const setIsPremiumOverride = (v: boolean) => {
-    // Only allow admins to set the override
+    // Only allow server-verified admins to set the override
     if (!isAdmin) return;
     setIsPremiumOverrideState(v);
+  };
+
+  const fetchAdminStatus = async () => {
+    const { data, error } = await supabase.rpc("is_admin");
+    if (!error && data === true) {
+      setIsAdmin(true);
+    } else {
+      setIsAdmin(false);
+    }
   };
 
   const daysUntilExpiry = creditsExpireAt
