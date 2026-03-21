@@ -25,6 +25,7 @@ const RecordingScreen = ({ mode, sessionStart, skipCountdown, onStop, onBack }: 
   const [showWarning, setShowWarning] = useState(false);
   const [sessionElapsed, setSessionElapsed] = useState(0);
   const stt = useSpeechToText();
+  const [sttUnsupported, setSttUnsupported] = useState(false);
 
   const remaining = MAX_DURATION - elapsed;
 
