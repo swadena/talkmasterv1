@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 const Admin = () => {
   const navigate = useNavigate();
-  const { user, credits, loading, isAdmin, isPremiumOverride, setIsPremiumOverride } = useAuth();
+  const { user, credits, loading, adminLoading, isAdmin, isPremiumOverride, setIsPremiumOverride } = useAuth();
   const [checked, setChecked] = useState(false);
 
   useEffect(() => {
