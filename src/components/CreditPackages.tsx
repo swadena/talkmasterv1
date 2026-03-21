@@ -45,6 +45,7 @@ const CreditPackages = ({ onPurchase }: CreditPackagesProps) => {
       )}
 
       {packages.map((pkg) => {
+        const isSingle = pkg.id === "single";
         const discountedPrice = Math.round(pkg.price * 50) / 100;
         return (
           <button
@@ -58,11 +59,11 @@ const CreditPackages = ({ onPurchase }: CreditPackagesProps) => {
               </div>
               <div>
                 <p className="text-sm font-medium text-foreground">{pkg.name}</p>
-                <p className="text-[11px] text-muted-foreground">{pkg.credits} credits</p>
+                <p className="text-[11px] text-muted-foreground">{pkg.credits} credit{pkg.credits !== 1 ? "s" : ""}</p>
               </div>
             </div>
             <div className="text-right">
-              {showDiscount ? (
+              {showDiscount && !isSingle ? (
                 <div className="flex items-center gap-1.5">
                   <span className="text-xs text-muted-foreground line-through">${pkg.price}</span>
                   <span className="text-sm font-semibold text-primary">${discountedPrice}</span>

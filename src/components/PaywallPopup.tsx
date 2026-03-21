@@ -84,14 +84,15 @@ const PaywallPopup = ({ open, onClose }: PaywallPopupProps) => {
             {/* Sample pricing */}
             <div className="mt-4 flex flex-col gap-2">
               {packages.slice(0, 2).map((pkg) => {
+                const isSingle = pkg.credits === 1;
                 const discounted = Math.round(pkg.price * 50) / 100;
                 return (
                   <div key={pkg.name} className="flex items-center justify-between rounded-xl bg-background/50 px-4 py-2.5">
                     <div>
                       <p className="text-xs font-medium text-foreground">{pkg.name}</p>
-                      <p className="text-[10px] text-muted-foreground">{pkg.credits} credits</p>
+                      <p className="text-[10px] text-muted-foreground">{pkg.credits} credit{pkg.credits !== 1 ? "s" : ""}</p>
                     </div>
-                    {showDiscount ? (
+                    {showDiscount && !isSingle ? (
                       <div className="flex items-center gap-1.5">
                         <span className="text-[11px] text-muted-foreground line-through">${pkg.price}</span>
                         <span className="text-sm font-semibold text-primary">${discounted}</span>
