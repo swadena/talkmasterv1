@@ -60,7 +60,8 @@ const Auth = () => {
   const referralCode = searchParams.get("ref") || "";
 
   if (user) {
-    navigate("/");
+    const onboardingDone = localStorage.getItem("onboarding_complete");
+    navigate(onboardingDone ? "/" : "/onboarding");
     return null;
   }
 
