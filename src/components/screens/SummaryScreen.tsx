@@ -115,7 +115,7 @@ const SummaryScreen = ({ mode, conversationLog, onNewSession, onBack, onSessionC
       animate={{ y: 0 }}
       exit={{ y: "100%" }}
       transition={{ duration: 0.4, ease: [0.2, 0, 0, 1] }}
-      className="flex h-full flex-col px-6 pt-14 pb-8 overflow-y-auto"
+      className="flex min-h-[100dvh] md:min-h-0 h-full flex-col px-6 pt-8 pb-8 overflow-y-auto"
     >
       {/* Header */}
       <div className="flex items-center gap-3">
