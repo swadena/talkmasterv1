@@ -125,45 +125,6 @@ const Auth = () => {
     setShowConfirmPassword(false);
   };
 
-  const PasswordInput = ({
-    value,
-    onChange,
-    show,
-    onToggle,
-    placeholder,
-    label,
-  }: {
-    value: string;
-    onChange: (v: string) => void;
-    show: boolean;
-    onToggle: () => void;
-    placeholder: string;
-    label: string;
-  }) => (
-    <div>
-      <label className="text-xs font-medium text-muted-foreground">{label}</label>
-      <div className="relative mt-1">
-        <input
-          type={show ? "text" : "password"}
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          required
-          minLength={6}
-          className="h-12 w-full rounded-2xl bg-surface px-4 pr-12 text-sm text-foreground outline-none ring-1 ring-border focus:ring-primary transition-colors"
-          placeholder={placeholder}
-        />
-        <button
-          type="button"
-          onClick={onToggle}
-          className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-          tabIndex={-1}
-        >
-          {show ? <EyeOff className="h-4.5 w-4.5" /> : <Eye className="h-4.5 w-4.5" />}
-        </button>
-      </div>
-    </div>
-  );
-
   return (
     <div className="flex min-h-screen items-center justify-center bg-background">
       <div className="relative mx-auto h-[812px] w-[375px] overflow-hidden rounded-4xl border border-border bg-background shadow-2xl">
