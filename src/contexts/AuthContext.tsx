@@ -4,6 +4,7 @@ import type { User } from "@supabase/supabase-js";
 
 interface AuthContextType {
   user: User | null;
+  adminLoading: boolean;
   loading: boolean;
   credits: number;
   creditsExpireAt: Date | null;
