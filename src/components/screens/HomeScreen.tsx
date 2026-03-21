@@ -47,7 +47,7 @@ const HomeScreen = ({ onStart }: HomeScreenProps) => {
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       transition={{ duration: 0.25, ease: [0.2, 0, 0, 1] }}
-      className="flex h-full flex-col px-6 pt-14 pb-8"
+      className="flex min-h-[100dvh] md:min-h-0 h-full flex-col px-6 pt-10 pb-8 md:pt-8"
     >
       {/* Top bar with logo, credits, and profile */}
       <div className="mt-4 flex items-center justify-between">
