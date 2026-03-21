@@ -244,7 +244,7 @@ const SummaryScreen = ({ mode, conversationLog, onNewSession, onBack, onSessionC
           <div className="flex flex-col gap-3 mt-4">
             <button
               onClick={onNewSession}
-              className="h-14 w-full rounded-2xl bg-foreground text-background font-medium ease-presence transition-transform active:scale-95 will-change-transform"
+              className="h-14 w-full rounded-2xl bg-foreground text-background font-medium ease-presence transition-transform active:scale-95 hover:opacity-90 will-change-transform"
             >
               Start New Session
             </button>
