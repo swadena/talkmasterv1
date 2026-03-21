@@ -19,10 +19,31 @@ serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     const authHeader = req.headers.get("Authorization");
-    if (!authHeader) throw new Error("Missing auth");
+    if (!authHeader) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
     const token = authHeader.replace("Bearer ", "");
     const { data: { user }, error: authError } = await supabase.auth.getUser(token);
-    if (authError || !user) throw new Error("Unauthorized");
+    if (authError || !user) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Server-side premium check
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("has_purchased, founding_user")
+      .eq("id", user.id)
+      .single();
+
+    if (!profile || (!profile.has_purchased && !profile.founding_user)) {
+      return new Response(JSON.stringify({ error: "Premium required" }), {
+        status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     // Fetch last 6 sessions for trends (last 3 vs previous 3)
     const { data: sessions } = await supabase
@@ -111,7 +132,6 @@ Do NOT include any text outside the JSON object.`,
         const aiData = await aiRes.json();
         const raw = aiData.choices?.[0]?.message?.content?.trim();
         if (raw) {
-          // Strip markdown code fences if present
           const cleaned = raw.replace(/^```json?\s*/i, "").replace(/\s*```$/i, "");
           const parsed = JSON.parse(cleaned);
           insight = parsed.summary || null;
@@ -128,7 +148,7 @@ Do NOT include any text outside the JSON object.`,
   } catch (error) {
     console.error("generate-insight error:", error);
     return new Response(
-      JSON.stringify({ error: error instanceof Error ? error.message : "Unknown error" }),
+      JSON.stringify({ error: "An unexpected error occurred" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }

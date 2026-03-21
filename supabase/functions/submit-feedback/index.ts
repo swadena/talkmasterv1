@@ -7,6 +7,19 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+const MAX_FIELD_LENGTH = 1000;
+
+// Sanitize cell values to prevent formula injection
+function sanitizeCell(value: unknown): string {
+  if (value == null) return "";
+  const str = String(value).slice(0, MAX_FIELD_LENGTH);
+  // Prefix with single-quote if starts with a formula character
+  if (/^[=+\-@]/.test(str)) {
+    return "'" + str;
+  }
+  return str;
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -19,12 +32,31 @@ serve(async (req) => {
 
     // Verify user
     const authHeader = req.headers.get("Authorization");
-    if (!authHeader) throw new Error("Missing auth");
+    if (!authHeader) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
     const token = authHeader.replace("Bearer ", "");
     const { data: { user }, error: authError } = await supabase.auth.getUser(token);
-    if (authError || !user) throw new Error("Unauthorized");
+    if (authError || !user) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     const { most_useful, frustration, would_pay } = await req.json();
+
+    // Validate input lengths
+    if (
+      (most_useful && String(most_useful).length > MAX_FIELD_LENGTH) ||
+      (frustration && String(frustration).length > MAX_FIELD_LENGTH) ||
+      (would_pay && String(would_pay).length > MAX_FIELD_LENGTH)
+    ) {
+      return new Response(JSON.stringify({ error: "Input too long" }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     // Check if already claimed
     const { data: profile } = await supabase
@@ -33,7 +65,11 @@ serve(async (req) => {
       .eq("id", user.id)
       .single();
 
-    if (!profile) throw new Error("Profile not found");
+    if (!profile) {
+      return new Response(JSON.stringify({ error: "Profile not found" }), {
+        status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
     if (profile.feedback_reward_claimed) {
       return new Response(JSON.stringify({ error: "Already claimed" }), {
         status: 400,
@@ -65,7 +101,7 @@ serve(async (req) => {
         const spreadsheetId = "1NLHp1STfX-OkdWalUruk0Av5sMzROB5mvoDC2ULZ9Lk";
 
         await fetch(
-          `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/Sheet1!A:F:append?valueInputOption=USER_ENTERED`,
+          `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/Sheet1!A:F:append?valueInputOption=RAW`,
           {
             method: "POST",
             headers: {
@@ -74,11 +110,11 @@ serve(async (req) => {
             },
             body: JSON.stringify({
               values: [[
-                profile.email || user.email || "",
+                sanitizeCell(profile.email || user.email || ""),
                 count || 0,
-                most_useful,
-                frustration,
-                would_pay,
+                sanitizeCell(most_useful),
+                sanitizeCell(frustration),
+                sanitizeCell(would_pay),
                 new Date().toISOString(),
               ]],
             }),
@@ -86,7 +122,6 @@ serve(async (req) => {
         );
       } catch (sheetErr) {
         console.error("Google Sheets append failed:", sheetErr);
-        // Don't fail the whole request if sheet append fails
       }
     }
 
@@ -96,7 +131,7 @@ serve(async (req) => {
   } catch (error) {
     console.error("submit-feedback error:", error);
     return new Response(
-      JSON.stringify({ error: error instanceof Error ? error.message : "Unknown error" }),
+      JSON.stringify({ error: "An unexpected error occurred" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
@@ -118,7 +153,6 @@ async function getGoogleAccessToken(keyData: { client_email: string; private_key
 
   const signingInput = `${header}.${claim}`;
 
-  // Import the private key
   const pemContents = keyData.private_key
     .replace(/-----BEGIN PRIVATE KEY-----/, "")
     .replace(/-----END PRIVATE KEY-----/, "")
