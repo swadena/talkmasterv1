@@ -82,11 +82,11 @@ const HomeScreen = ({ onStart }: HomeScreenProps) => {
       </div>
 
       {/* Greeting */}
-      <div className="mt-12">
-        <h1 className="text-3xl font-semibold leading-tight text-foreground text-pretty">
+      <div className="mt-8 md:mt-10">
+        <h1 className="text-3xl md:text-4xl font-semibold leading-tight text-foreground text-pretty">
           What are we<br />practicing today?
         </h1>
-        <p className="mt-2 text-sm text-muted-foreground">
+        <p className="mt-2 text-sm md:text-base text-muted-foreground">
           {user ? "Choose a mode to start your session" : "Sign in to start practicing"}
         </p>
       </div>
