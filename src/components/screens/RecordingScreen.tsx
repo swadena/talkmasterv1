@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ChevronLeft } from "lucide-react";
+import { ChevronLeft, MicOff } from "lucide-react";
 import VideoAvatar from "@/components/VideoAvatar";
 import MicStatusIndicator from "@/components/MicStatusIndicator";
 import { useSpeechToText } from "@/hooks/useSpeechToText";
@@ -25,11 +25,16 @@ const RecordingScreen = ({ mode, sessionStart, skipCountdown, onStop, onBack }: 
   const [showWarning, setShowWarning] = useState(false);
   const [sessionElapsed, setSessionElapsed] = useState(0);
   const stt = useSpeechToText();
+  const [sttUnsupported, setSttUnsupported] = useState(false);
 
   const remaining = MAX_DURATION - elapsed;
 
-  // Start STT immediately if skipping countdown
+  // Check STT support and start if skipping countdown
   useEffect(() => {
+    if (!stt.isSupported) {
+      setSttUnsupported(true);
+      return;
+    }
     if (skipCountdown) {
       stt.start();
     }
@@ -103,6 +108,36 @@ const RecordingScreen = ({ mode, sessionStart, skipCountdown, onStop, onBack }: 
   }, []);
 
   const modeLabel = mode.charAt(0).toUpperCase() + mode.slice(1);
+
+  if (sttUnsupported) {
+    return (
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        className="flex h-full flex-col items-center justify-center gap-6 bg-background px-8 text-center"
+      >
+        <div className="flex h-16 w-16 items-center justify-center rounded-full bg-destructive/10">
+          <MicOff className="h-8 w-8 text-destructive" />
+        </div>
+        <div>
+          <h2 className="text-xl font-semibold text-foreground">Speech Recognition Unavailable</h2>
+          <p className="mt-2 text-sm text-muted-foreground leading-relaxed">
+            Your browser doesn't support speech recognition. Please try using <strong>Google Chrome</strong> on Android or desktop for the best experience.
+          </p>
+          <p className="mt-1 text-xs text-muted-foreground/70">
+            Safari on iOS does not currently support this feature.
+          </p>
+        </div>
+        <button
+          onClick={onBack}
+          className="h-12 rounded-2xl bg-primary px-8 text-primary-foreground font-medium ease-presence transition-transform active:scale-95"
+        >
+          Go Back
+        </button>
+      </motion.div>
+    );
+  }
 
   return (
     <motion.div
