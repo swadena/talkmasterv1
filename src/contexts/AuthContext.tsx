@@ -143,7 +143,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       const u = session?.user ?? null;
       setUser(u);
-      if (u) fetchCredits(u.id);
+      if (u) {
+        fetchCredits(u.id);
+        fetchAdminStatus();
+      }
       setLoading(false);
     });
 
