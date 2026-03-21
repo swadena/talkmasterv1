@@ -109,7 +109,7 @@ const HomeScreen = ({ onStart }: HomeScreenProps) => {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 + i * 0.06, duration: 0.3, ease: [0.2, 0, 0, 1] }}
             onClick={() => onStart(mode.id)}
-            className="card-depth flex items-center gap-4 rounded-3xl bg-surface p-4 text-left ease-presence transition-transform duration-250 active:scale-[0.97] will-change-transform"
+            className="card-depth flex items-center gap-4 rounded-3xl bg-surface p-4 text-left ease-presence transition-transform duration-250 active:scale-[0.97] hover:bg-accent will-change-transform"
           >
             <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10">
               <mode.icon className="h-5 w-5 text-primary" />
