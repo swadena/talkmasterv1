@@ -4,6 +4,7 @@ import type { User } from "@supabase/supabase-js";
 
 interface AuthContextType {
   user: User | null;
+  adminLoading: boolean;
   loading: boolean;
   credits: number;
   creditsExpireAt: Date | null;
@@ -20,6 +21,7 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType>({
   user: null,
+  adminLoading: true,
   loading: true,
   credits: 0,
   creditsExpireAt: null,
@@ -44,6 +46,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [foundingUser, setFoundingUser] = useState(false);
   const [hasPurchased, setHasPurchased] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [adminLoading, setAdminLoading] = useState(true);
   // Premium override is now in-memory only and gated behind server-side admin check
   const [isPremiumOverride, setIsPremiumOverrideState] = useState(false);
 
@@ -54,12 +57,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   const fetchAdminStatus = async () => {
+    setAdminLoading(true);
     const { data, error } = await supabase.rpc("is_admin");
     if (!error && data === true) {
       setIsAdmin(true);
     } else {
       setIsAdmin(false);
     }
+    setAdminLoading(false);
   };
 
   const daysUntilExpiry = creditsExpireAt
@@ -154,7 +159,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, loading, credits, creditsExpireAt, daysUntilExpiry, foundingUser, hasPurchased, isAdmin, isPremiumOverride, setIsPremiumOverride, refreshCredits, deductCredit, signOut }}>
+    <AuthContext.Provider value={{ user, adminLoading, loading, credits, creditsExpireAt, daysUntilExpiry, foundingUser, hasPurchased, isAdmin, isPremiumOverride, setIsPremiumOverride, refreshCredits, deductCredit, signOut }}>
       {children}
     </AuthContext.Provider>
   );

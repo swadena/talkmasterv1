@@ -7,21 +7,21 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 const Admin = () => {
   const navigate = useNavigate();
-  const { user, credits, loading, isAdmin, isPremiumOverride, setIsPremiumOverride } = useAuth();
+  const { user, credits, loading, adminLoading, isAdmin, isPremiumOverride, setIsPremiumOverride } = useAuth();
   const [checked, setChecked] = useState(false);
 
   useEffect(() => {
-    if (loading) return;
+    if (loading || adminLoading) return;
     if (!user || !isAdmin) {
       navigate("/");
     }
-  }, [user, loading, isAdmin, navigate]);
+  }, [user, loading, adminLoading, isAdmin, navigate]);
 
   useEffect(() => {
     setChecked(isPremiumOverride);
   }, [isPremiumOverride]);
 
-  if (loading || !user || !isAdmin) {
+  if (loading || adminLoading || !user || !isAdmin) {
     return null;
   }
 
