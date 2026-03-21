@@ -1,10 +1,16 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
+
+const MAX_TRANSCRIPT_LENGTH = 2000;
+const MAX_CHALLENGE_LENGTH = 500;
+const MAX_PREVIOUS_CHALLENGES = 20;
+const VALID_MODES = ["debate", "interview", "pitch", "presentation", "daily_challenge"];
 
 const scenarioPersonas: Record<string, string> = {
   debate: `You are a warm, conversational debate partner. You genuinely listen and respond naturally — like a smart friend having a real discussion. You're supportive first, curious second, and only challenging when it truly adds value.`,
@@ -56,12 +62,50 @@ serve(async (req) => {
   }
 
   try {
+    // Auth check
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    const supabase = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+    );
+    const token = authHeader.replace("Bearer ", "");
+    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+    if (authError || !user) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     const { transcript, mode, previousChallenges, roundNumber, dailyTopic } = await req.json();
+
+    // Input validation
+    if (mode && !VALID_MODES.includes(mode)) {
+      return new Response(JSON.stringify({ error: "Invalid mode" }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    if (typeof transcript === "string" && transcript.length > MAX_TRANSCRIPT_LENGTH) {
+      return new Response(JSON.stringify({ error: "Input too long" }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    // Validate previousChallenges
+    let safePreviousChallenges = previousChallenges;
+    if (Array.isArray(previousChallenges)) {
+      safePreviousChallenges = previousChallenges
+        .slice(0, MAX_PREVIOUS_CHALLENGES)
+        .map((c: string) => typeof c === "string" ? c.slice(0, MAX_CHALLENGE_LENGTH) : "");
+    }
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
-    // Detect exit intent in the user's transcript
+    // Detect exit intent
     const exitPhrases = [
       "i want to stop", "i want to finish", "i'm tired", "im tired",
       "let's stop", "lets stop", "i'm done", "im done", "can we stop",
@@ -75,7 +119,6 @@ serve(async (req) => {
     const hasExitIntent = exitPhrases.some((p) => lowerTranscript.includes(p));
 
     if (hasExitIntent) {
-      // Return a soft assurance question once, then farewell
       return new Response(
         JSON.stringify({
           challenge: "I understand you'd like to wrap up. Before we finish, is there anything specific that made you want to stop early?",
@@ -89,7 +132,6 @@ serve(async (req) => {
     const persona = scenarioPersonas[mode] || scenarioPersonas.debate;
     const guidance = questionGuidance[mode] || questionGuidance.debate;
 
-    // Progressive difficulty: warmup → explore → deeper
     let questionType: string;
     let questionInstruction: string;
     if (roundNumber <= 2) {
@@ -103,12 +145,12 @@ serve(async (req) => {
       questionInstruction = guidance.explore;
     }
 
-    const previousContext = previousChallenges?.length
-      ? `\n\nQuestions already asked (do NOT repeat or rephrase these):\n${previousChallenges.map((c: string, i: number) => `${i + 1}. ${c}`).join("\n")}`
+    const previousContext = safePreviousChallenges?.length
+      ? `\n\nQuestions already asked (do NOT repeat or rephrase these):\n${safePreviousChallenges.map((c: string, i: number) => `${i + 1}. ${c}`).join("\n")}`
       : "";
 
     const dailyTopicContext = mode === "daily_challenge" && dailyTopic
-      ? `\n\nDAILY CHALLENGE TOPIC: "${dailyTopic}"\nThis is the topic for today's session. All your questions MUST relate to this topic. If the user asks you to repeat the question or topic, restate this exact topic clearly: "${dailyTopic}".`
+      ? `\n\nDAILY CHALLENGE TOPIC: "${String(dailyTopic).slice(0, 500)}"\nThis is the topic for today's session. All your questions MUST relate to this topic. If the user asks you to repeat the question or topic, restate this exact topic clearly: "${String(dailyTopic).slice(0, 500)}".`
       : "";
 
     const systemPrompt = `${persona}
@@ -150,7 +192,7 @@ RULES:
     if (isRepeatRequest) {
       return new Response(
         JSON.stringify({
-          challenge: `Sure! Your topic is: ${dailyTopic}. What are your thoughts on this?`,
+          challenge: `Sure! Your topic is: ${String(dailyTopic).slice(0, 500)}. What are your thoughts on this?`,
           questionType: "repeat",
         }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -201,7 +243,6 @@ RULES:
     let challenge =
       data.choices?.[0]?.message?.content?.trim() || "Can you elaborate on that?";
 
-    // Strip any leading quotes the model might add
     challenge = challenge.replace(/^["']|["']$/g, "");
 
     return new Response(JSON.stringify({ challenge, questionType }), {
@@ -210,13 +251,8 @@ RULES:
   } catch (e) {
     console.error("generate-challenge error:", e);
     return new Response(
-      JSON.stringify({
-        error: e instanceof Error ? e.message : "Unknown error",
-      }),
-      {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      }
+      JSON.stringify({ error: "An error occurred processing your request" }),
+      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
 });
