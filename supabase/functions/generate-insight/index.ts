@@ -32,14 +32,14 @@ serve(async (req) => {
       });
     }
 
-    // Server-side premium check
+    // Server-side premium check (admins bypass)
     const { data: profile } = await supabase
       .from("profiles")
-      .select("has_purchased, founding_user")
+      .select("has_purchased, founding_user, is_admin")
       .eq("id", user.id)
       .single();
 
-    if (!profile || (!profile.has_purchased && !profile.founding_user)) {
+    if (!profile || (!profile.has_purchased && !profile.founding_user && !profile.is_admin)) {
       return new Response(JSON.stringify({ error: "Premium required" }), {
         status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
