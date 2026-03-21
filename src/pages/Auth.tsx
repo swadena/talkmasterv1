@@ -60,7 +60,8 @@ const Auth = () => {
   const referralCode = searchParams.get("ref") || "";
 
   if (user) {
-    navigate("/");
+    const onboardingDone = localStorage.getItem("onboarding_complete");
+    navigate(onboardingDone ? "/" : "/onboarding");
     return null;
   }
 
@@ -93,7 +94,8 @@ const Auth = () => {
       } else if (isLogin) {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
-        navigate("/");
+        const onboardingDone = localStorage.getItem("onboarding_complete");
+        navigate(onboardingDone ? "/" : "/onboarding");
       } else {
         const { error, data } = await supabase.auth.signUp({
           email,
