@@ -80,13 +80,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const deductCredit = async (): Promise<boolean> => {
     if (!user || credits <= 0) return false;
-    const newCredits = credits - 1;
-    const { error } = await supabase
-      .from("profiles")
-      .update({ credits: newCredits })
-      .eq("id", user.id);
-    if (error) return false;
-    setCredits(newCredits);
+    const { data, error } = await supabase.rpc("deduct_credit");
+    if (error || !data) return false;
+    setCredits((prev) => Math.max(0, prev - 1));
     return true;
   };
 
