@@ -115,7 +115,7 @@ const RecordingScreen = ({ mode, sessionStart, skipCountdown, onStop, onBack }: 
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="flex h-full flex-col items-center justify-center gap-6 bg-background px-8 text-center"
+        className="flex h-[100dvh] flex-col items-center justify-center gap-6 bg-background px-8 text-center"
       >
         <div className="flex h-16 w-16 items-center justify-center rounded-full bg-destructive/10">
           <MicOff className="h-8 w-8 text-destructive" />

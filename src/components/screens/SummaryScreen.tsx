@@ -250,7 +250,7 @@ const SummaryScreen = ({ mode, conversationLog, onNewSession, onBack, onSessionC
             </button>
             <button
               onClick={() => navigate("/dashboard")}
-              className="h-12 w-full rounded-2xl bg-surface text-foreground text-sm font-medium ease-presence transition-transform active:scale-95"
+              className="h-12 w-full rounded-2xl bg-surface text-foreground text-sm font-medium ease-presence transition-transform active:scale-95 hover:bg-accent"
             >
               Go to Dashboard
             </button>
