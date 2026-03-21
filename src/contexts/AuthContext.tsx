@@ -59,10 +59,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const fetchAdminStatus = async () => {
     setAdminLoading(true);
     const { data, error } = await supabase.rpc("is_admin");
-    if (!error && data === true) {
-      setIsAdmin(true);
-    } else {
-      setIsAdmin(false);
+    const adminFlag = !error && data === true;
+    setIsAdmin(adminFlag);
+    if (adminFlag) {
+      setIsPremiumOverrideState(true);
+      console.log("[Admin] Premium override auto-enabled for admin user");
     }
     setAdminLoading(false);
   };
