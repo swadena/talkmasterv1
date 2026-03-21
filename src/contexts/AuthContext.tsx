@@ -106,10 +106,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
     if (!referrer || referrer.id === userId) return;
 
-    await supabase
-      .from("profiles")
-      .update({ referred_by: referrer.id })
-      .eq("id", userId);
+    // Use secure RPC to set referred_by
+    await supabase.rpc("set_referred_by", { _referrer_id: referrer.id });
 
     await supabase.from("referrals").insert([{
       referrer_id: referrer.id,
