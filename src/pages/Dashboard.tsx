@@ -53,6 +53,11 @@ const Dashboard = () => {
   const [loading, setLoading] = useState(true);
   const initialTab = (searchParams.get("tab") as Tab) || "progress";
   const [activeTab, setActiveTab] = useState<Tab>(initialTab);
+
+  useEffect(() => {
+    const tab = searchParams.get("tab") as Tab;
+    if (tab) setActiveTab(tab);
+  }, [searchParams]);
   const [selectedSession, setSelectedSession] = useState<SessionRecord | null>(null);
   const [insight, setInsight] = useState<string | null>(null);
   const [trends, setTrends] = useState<Record<string, string> | null>(null);
@@ -283,7 +288,7 @@ const Dashboard = () => {
                 {!isPremium && (
                   <div className="mt-4 flex justify-center">
                     <button
-                      onClick={() => navigate("/dashboard?tab=credits")}
+                      onClick={() => setActiveTab("credits")}
                       className="rounded-xl bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground transition-transform active:scale-95 hover:opacity-90"
                     >
                       Unlock full insights
