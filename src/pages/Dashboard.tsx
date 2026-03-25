@@ -238,7 +238,7 @@ const Dashboard = () => {
                 <InsightSummary insight={insight} loading={insightLoading} />
               ) : (
                 insight || insightLoading ? (
-                  <LockedInsightOverlay previewText={insight ? insight.split(" ").slice(0, 7).join(" ") + "..." : "Your speaking performance shows strong clarity and..."}>
+                  <LockedInsightOverlay onUnlock={() => setActiveTab("credits")} previewText={insight ? insight.split(" ").slice(0, 7).join(" ") + "..." : "Your speaking performance shows strong clarity and..."}>
                     <p className="text-xs text-muted-foreground leading-relaxed">
                       {insight || "Your speaking performance shows strong clarity and confidence. Focus on reducing filler words for even more impact."}
                     </p>
