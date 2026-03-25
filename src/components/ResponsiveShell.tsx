@@ -15,7 +15,7 @@ interface ResponsiveShellProps {
 const ResponsiveShell = ({ children, fullscreen = false }: ResponsiveShellProps) => {
   if (fullscreen) {
     return (
-      <div className="min-h-[100dvh] w-full bg-background">
+      <div className="session-dark min-h-[100dvh] w-full bg-background text-foreground">
         {children}
       </div>
     );
