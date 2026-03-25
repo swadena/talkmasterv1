@@ -1,13 +1,12 @@
 import { Lock } from "lucide-react";
-import { useNavigate } from "react-router-dom";
 
 interface LockedInsightOverlayProps {
   previewText?: string;
   children?: React.ReactNode;
+  onUnlock?: () => void;
 }
 
-const LockedInsightOverlay = ({ previewText, children }: LockedInsightOverlayProps) => {
-  const navigate = useNavigate();
+const LockedInsightOverlay = ({ previewText, children, onUnlock }: LockedInsightOverlayProps) => {
 
   return (
     <div className="relative rounded-2xl bg-surface p-5 card-depth overflow-hidden min-h-[120px]">
@@ -27,7 +26,7 @@ const LockedInsightOverlay = ({ previewText, children }: LockedInsightOverlayPro
           See your strengths, weaknesses, and progress over time
         </p>
         <button
-          onClick={() => navigate("/dashboard?tab=credits")}
+          onClick={onUnlock}
           className="rounded-xl bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground transition-transform active:scale-95 hover:opacity-90"
         >
           Unlock full insights
